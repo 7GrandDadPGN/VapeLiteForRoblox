@@ -180,7 +180,7 @@ if suc and type(web) ~= "boolean" then
                 local typetext = ""
                 local obj = (isAlive() and lplr.Character:FindFirstChild("HandInvItem") and lplr.Character.HandInvItem.Value or nil)
                 if obj then
-                    if obj.Name:find("sword") or obj.Name:find("blade") or obj.Name:find("baguette") or obj.Name:find("scythe") then
+                    if obj.Name:find("sword") or obj.Name:find("blade") or obj.Name:find("baguette") or obj.Name:find("scythe") or obj.Name:find("dao") then
                         typetext = "sword"
                     end
                     if obj.Name:find("wool") or bedwars["ItemTable"][obj.Name]["block"] then
