@@ -1,4 +1,10 @@
-local websocketfunc = syn and syn.websocket.connect or websocket and websocket.connect
+local websocketfunc
+for i,v in pairs(getgenv()) do
+    if tostring(i):find("websocket") and tostring(i):find("connect") then
+        websocketfunc = v
+        break
+    end
+end
 local suc, web = pcall(function() return websocketfunc("ws://127.0.0.1:6892/") end)
 local readsettings = Instance.new("BindableEvent")
 local modules = {}
