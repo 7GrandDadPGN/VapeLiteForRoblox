@@ -170,7 +170,6 @@ if suc and type(web) ~= "boolean" then
                     for i2,v2 in pairs(v) do
                         if i2:find("constructor") == nil and i2:find("__index") == nil and i2:find("new") == nil then
                             bedwars["AttackHashFunction"] = v2
-                            print("Attackfunctyion", v2)
                             bedwars["AttachHashText"] = i2
                         end
                     end
