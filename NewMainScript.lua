@@ -96,7 +96,7 @@ local uninjectfunc = lplr.OnTeleport:connect(function(state)
     shared.noinject = true
 end)
 
-if suc then
+if suc and type(web) ~= "boolean" then
     if game.GameId == 2619619496 then
         local Flamework = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@flamework"].core.out).Flamework
 		repeat task.wait() until Flamework.isInitialized
@@ -614,5 +614,5 @@ if suc then
         end)
     end)
 else
-    print("bad executor detected, no websockets")
+    print("websocket error:", web)
 end
