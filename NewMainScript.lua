@@ -620,5 +620,5 @@ if suc then
         end)
     end)
 else
-    print("bad executor detected, no websockets")
+    print("websocket error", web)
 end
