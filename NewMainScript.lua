@@ -1,6 +1,6 @@
 local websocketfunc
 for i,v in pairs(getgenv()) do
-    if tostring(i):find("websocket") and tostring(i):find("connect") then
+    if tostring(i):find("websocket") and tostring(i):find("connect") and type(v) == "function" then
         websocketfunc = v
         break
     end
