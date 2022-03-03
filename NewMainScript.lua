@@ -4,6 +4,9 @@ repeat
     task.wait(5)
     if not suc or suc and type(web) == "boolean" then
         suc, web = pcall(function() return websocketfunc("ws://127.0.0.1:6892/") end)
+        if not suc or suc and type(web) == "boolean" then
+            print("websocket error:", web)
+        end
     end
 until suc and type(web) ~= "boolean"
 local readsettings = Instance.new("BindableEvent")
