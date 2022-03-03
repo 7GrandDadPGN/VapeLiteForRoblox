@@ -106,6 +106,7 @@ local uninjectfunc = lplr.OnTeleport:connect(function(state)
 end)
 
 if suc and type(web) ~= "boolean" then
+    print(type(web))
     if game.GameId == 2619619496 then
         local Flamework = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@flamework"].core.out).Flamework
 		repeat task.wait() until Flamework.isInitialized
