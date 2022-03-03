@@ -1,4 +1,4 @@
-local websocketfunc = syn and syn.websocket.connect or Krnl and Krnl.WebSocket.connect or websocket and websocket.connect
+local websocketfunc = syn and syn.websocket.connect or Krnl and Krnl.WebSocket.connect or WebSocket and WebSocket.connect or websocket and websocket.connect
 local suc, web = pcall(function() return websocketfunc("ws://127.0.0.1:6892/") end)
 repeat 
     task.wait(5)
