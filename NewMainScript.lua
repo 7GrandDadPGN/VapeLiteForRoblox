@@ -106,11 +106,6 @@ local uninjectfunc = lplr.OnTeleport:connect(function(state)
 end)
 
 if suc and type(web) ~= "boolean" then
-    if type(web) == "table" then
-        for i2,v2 in pairs(web) do
-            print(i2,v2)
-        end
-    end
     if game.GameId == 2619619496 then
         local Flamework = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@flamework"].core.out).Flamework
 		repeat task.wait() until Flamework.isInitialized
@@ -524,7 +519,7 @@ if suc and type(web) ~= "boolean" then
             end)
         end
     end
-    web.OnMessage:connect(function(msg)
+    web.OnMessage:Connect(function(msg)
         local tab = game:GetService("HttpService"):JSONDecode(msg)
         if tab.msg == "togglemodule" then
             local module = findModule(tab.module)
@@ -609,7 +604,7 @@ if suc and type(web) ~= "boolean" then
         msg = "connectrequest",
         modules = modules
     })
-    web.OnClose:connect(function()
+    web.OnClose:Connect(function()
         for i,v in pairs(modulefunctions) do 
             local ok = findModule(i)
             if ok ~= nil and modulesenabled[i] then
