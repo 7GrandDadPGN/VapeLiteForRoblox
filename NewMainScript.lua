@@ -514,7 +514,7 @@ if suc and type(web) ~= "boolean" then
                                     local entity = bedwars["getEntityTable"]:getEntity(plr.Character)
                                     if entity and bedwars["SwordController"]:canSee(entity) then
                                         local tool = equipped["Object"]
-                                        local pos = (lplr.Character.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).magnitude >= 14 and CFrame.lookAt(lplr.Character.HumanoidRootPart.Position, plr.Character.HumanoidRootPart.Position).lookVector * 4) or Vector3.new(0, 0, 0)
+                                        local pos = (lplr.Character.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).magnitude >= 14 and CFrame.lookAt(lplr.Character.HumanoidRootPart.Position, plr.Character.HumanoidRootPart.Position).lookVector * 4 or Vector3.new(0, 0, 0)
                                         Client:Get(bedwars["AttackRemote"]):CallServer({
                                             ["weapon"] = tool,
                                             ["entityInstance"] = plr.Character,
@@ -525,7 +525,7 @@ if suc and type(web) ~= "boolean" then
                                                     ["cursorDirection"] = hashvec(Ray.new(cam.CFrame.p, plr.Character.HumanoidRootPart.Position).Unit.Direction)
                                                 },
                                                 ["targetPosition"] = hashvec(plr.Character.HumanoidRootPart.Position),
-                                                ["selfPosition"] = hashvec(lplr.Character.HumanoidRootPart.Position + )
+                                                ["selfPosition"] = hashvec(lplr.Character.HumanoidRootPart.Position + pos)
                                             }
                                         })
                                     end
