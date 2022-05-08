@@ -38,6 +38,17 @@ local function isAlive(plr)
 	return lplr and lplr.Character and lplr.Character.Parent ~= nil and lplr.Character:FindFirstChild("HumanoidRootPart") and lplr.Character:FindFirstChild("Head") and lplr.Character:FindFirstChild("Humanoid")
 end
 
+local function getplayersnear(range)
+    if isAlive() then
+        for i,v in pairs(players:GetChildren()) do 
+            if v ~= lplr and v:GetAttribute("Team") ~= lplr:GetAttribute("Team") and isAlive(v) and (lplr.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).magnitude <= range then 
+                return v
+            end
+        end
+    end 
+    return nil
+end
+
 local function sendrequest(tab)
     local newstr = game:GetService("HttpService"):JSONEncode(tab)
     if suc then
@@ -156,7 +167,6 @@ if suc and type(web) ~= "boolean" then
                     })
                 end,
                 ["ItemTable"] = debug.getupvalue(require(game:GetService("ReplicatedStorage").TS.item["item-meta"]).getItemMeta, 1),
-                ["prepareHashing"] = require(game:GetService("ReplicatedStorage").TS["remote-hash"]["remote-hash-util"]).RemoteHashUtil.prepareHashVector3,
                 ["PlayerUtil"] = require(game:GetService("ReplicatedStorage").TS.player["player-util"]).GamePlayerUtil,
                 ["SoundManager"] = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["game-core"].out).SoundManager,
 			    ["SoundList"] = require(game:GetService("ReplicatedStorage").TS.sound["game-sound"]).GameSound,
@@ -167,7 +177,6 @@ if suc and type(web) ~= "boolean" then
 
             local function hashvec(vec)
                 return {
-                    ["hash"] = bedwars["AttackHashFunction"](bedwars["AttackHashText"], bedwars["prepareHashing"](vec)), 
                     ["value"] = vec
                 }
             end
@@ -456,7 +465,7 @@ if suc and type(web) ~= "boolean" then
                 end
             end)
             local reachfunc
-            local reach = addModule("Reach", "Gives you 3 studs of extra reach.", function(callback)
+            local reach = addModule("Reach", "Gives you 4 studs of extra reach.", function(callback)
                 if callback then
                     reachfunc = cam.Viewmodel.Humanoid.Animator.AnimationPlayed:connect(function(anim)
                         if anim.Animation.AnimationId == "rbxassetid://8089691925" then
@@ -465,7 +474,66 @@ if suc and type(web) ~= "boolean" then
                                 local rayparams = RaycastParams.new()
                                 rayparams.FilterDescendantsInstances = {lplr.Character}
                                 rayparams.FilterType = Enum.RaycastFilterType.Blacklist
-                                local ray = workspace:Raycast(lplr:GetMouse().UnitRay.Origin, lplr:GetMouse().UnitRay.Direction * 17.4, rayparams)
+                                local ray = workspace:Raycast(lplr:GetMouse().UnitRay.Origin, lplr:GetMouse().UnitRay.Direction * 17.99, rayparams)
+                                if ray and ray.Instance and (lplr.Character.PrimaryPart.Position - ray.Instance.Position).Magnitude > 14.4 then
+                                    local entity = bedwars["getEntityTable"]:getEntity(ray.Instance)
+                                    if entity and bedwars["SwordController"]:canSee(entity) then
+                                        local tool = equipped["Object"]
+                                        local plr = {Character = entity:getInstance()}
+                                        Client:Get(bedwars["AttackRemote"]):CallServer({
+                                            ["weapon"] = tool,
+                                            ["entityInstance"] = plr.Character,
+                                            ["chargedAttack"] = {chargeRatio = 1},
+                                            ["validate"] = {
+                                                ["raycast"] = {
+                                                    ["cameraPosition"] = hashvec(cam.CFrame.p), 
+                                                    ["cursorDirection"] = hashvec(Ray.new(cam.CFrame.p, plr.Character.HumanoidRootPart.Position).Unit.Direction)
+                                                },
+                                                ["targetPosition"] = hashvec(plr.Character.HumanoidRootPart.Position),
+                                                ["selfPosition"] = hashvec(lplr.Character.HumanoidRootPart.Position + (CFrame.lookAt(lplr.Character.HumanoidRootPart.Position, plr.Character.HumanoidRootPart.Position).lookVector * 4))
+                                            }
+                                        })
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                else
+                    reachfunc:Disconnect()
+                end
+            end)
+            local killaurafunc
+            local killaura = addModule("Killaura", "Hits no matter where you aim", function(callback)
+                if callback then
+                    killaurafunc = cam.Viewmodel.Humanoid.Animator.AnimationPlayed:connect(function(anim)
+                        if anim.Animation.AnimationId == "rbxassetid://8089691925" then
+                            local equipped = getEquipped()
+                            if equipped["Type"] == "sword" then
+                                local plr = getplayersnear(17.999)
+                                if plr then 
+                                    local entity = bedwars["getEntityTable"]:getEntity(plr.Character)
+                                    if entity and bedwars["SwordController"]:canSee(entity) then
+                                        local tool = equipped["Object"]
+                                        local pos = (lplr.Character.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).magnitude >= 14 and CFrame.lookAt(lplr.Character.HumanoidRootPart.Position, plr.Character.HumanoidRootPart.Position).lookVector * 4) or Vector3.new(0, 0, 0)
+                                        Client:Get(bedwars["AttackRemote"]):CallServer({
+                                            ["weapon"] = tool,
+                                            ["entityInstance"] = plr.Character,
+                                            ["chargedAttack"] = {chargeRatio = 1},
+                                            ["validate"] = {
+                                                ["raycast"] = {
+                                                    ["cameraPosition"] = hashvec(cam.CFrame.p), 
+                                                    ["cursorDirection"] = hashvec(Ray.new(cam.CFrame.p, plr.Character.HumanoidRootPart.Position).Unit.Direction)
+                                                },
+                                                ["targetPosition"] = hashvec(plr.Character.HumanoidRootPart.Position),
+                                                ["selfPosition"] = hashvec(lplr.Character.HumanoidRootPart.Position + )
+                                            }
+                                        })
+                                    end
+                                end
+                            --[[ local rayparams = RaycastParams.new()
+                                rayparams.FilterDescendantsInstances = {lplr.Character}
+                                rayparams.FilterType = Enum.RaycastFilterType.Blacklist
+                                local ray = workspace:Raycast(lplr:GetMouse().UnitRay.Origin, lplr:GetMouse().UnitRay.Direction * 17.99, rayparams)
                                 if ray and ray.Instance and (lplr.Character.PrimaryPart.Position - ray.Instance.Position).Magnitude > 14.4 then
                                     local entity = bedwars["getEntityTable"]:getEntity(ray.Instance)
                                     if entity and bedwars["SwordController"]:canSee(entity) then
@@ -484,12 +552,12 @@ if suc and type(web) ~= "boolean" then
                                             }
                                         })
                                     end
-                                end
+                                end]]
                             end
                         end
                     end)
                 else
-                    reachfunc:Disconnect()
+                    killaurafunc:Disconnect()
                 end
             end)
             local oldhori = 10000
