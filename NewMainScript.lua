@@ -124,7 +124,8 @@ if suc and type(web) ~= "boolean" then
         draw = Drawing.new("Text")
         draw.Visible = false
         vapelite = Drawing.new("Image")
-        vapelite.Data = shared.VapeDeveloper and readfile("vapelitelogo.png") or game:HttpGet("https://raw.githubusercontent.com/7GrandDadPGN/VapeLiteForRoblox/main/VapeLiteLogo.png", true) or ""
+        local logocheck = syn and "VapeLiteLogoSyn.png" or "VapeLiteLogo.png"
+        vapelite.Data = shared.VapeDeveloper and readfile(logocheck) or game:HttpGet("https://raw.githubusercontent.com/7GrandDadPGN/VapeLiteForRoblox/main/"..logocheck, true) or ""
         vapelite.Size = Vector2.new(140, 64)
         vapelite.Position = Vector2.new(3, 36)
         vapelite.Visible = false
@@ -132,47 +133,49 @@ if suc and type(web) ~= "boolean" then
     local robloxgui = game:GetService("CoreGui"):WaitForChild("RobloxGui", 10)
 
     local function UpdateHud()
-        local text = ""
-        local text2 = ""
-        local tableofmodules = {}
-        local first = true
-        
-        for i,v in pairs(modulesenabled) do
-            local rendermodule = i:find("/") == nil and v 
-            if rendermodule and i ~= "TextGUI" then 
-                table.insert(tableofmodules, {["Text"] = i})
+        if modulesenabled["TextGUI"] then
+            local text = ""
+            local text2 = ""
+            local tableofmodules = {}
+            local first = true
+            
+            for i,v in pairs(modulesenabled) do
+                local rendermodule = i:find("/") == nil and v 
+                if rendermodule and i ~= "TextGUI" then 
+                    table.insert(tableofmodules, {["Text"] = i})
+                end
             end
-        end
-        table.sort(tableofmodules, function(a, b) 
-            draw.Text = a["Text"]
-            textsize1 = draw.TextBounds
-            draw.Text = b["Text"]
-            textsize2 = draw.TextBounds
-            return textsize1.X > textsize2.X 
-        end)
-        for i,v in pairs(textguitextdrawings) do 
-            pcall(function()
-                v:Remove()
-                textguitextdrawings[i] = nil
+            table.sort(tableofmodules, function(a, b) 
+                draw.Text = a["Text"]
+                textsize1 = draw.TextBounds
+                draw.Text = b["Text"]
+                textsize2 = draw.TextBounds
+                return textsize1.X > textsize2.X 
             end)
-        end
-        local num = 0
-        vapelite.Position = Vector2.new((robloxgui.AbsoluteSize.X - 4) - 140, 36)
-        for i,v in pairs(tableofmodules) do 
-            local newpos = robloxgui.AbsoluteSize.X - 4
-            local draw = Drawing.new("Text")
-            draw.Color = Color3.fromRGB(67, 117, 255)
-            draw.Size = 25
-            draw.Font = 0
-            draw.Text = v.Text
-            newpos = (newpos - (draw.TextBounds.X))
+            for i,v in pairs(textguitextdrawings) do 
+                pcall(function()
+                    v:Remove()
+                    textguitextdrawings[i] = nil
+                end)
+            end
+            local num = 0
+            vapelite.Position = Vector2.new((robloxgui.AbsoluteSize.X - 4) - 140, 36)
+            for i,v in pairs(tableofmodules) do 
+                local newpos = robloxgui.AbsoluteSize.X - 4
+                local draw = Drawing.new("Text")
+                draw.Color = Color3.fromRGB(67, 117, 255)
+                draw.Size = 25
+                draw.Font = 0
+                draw.Text = v.Text
+                newpos = (newpos - (draw.TextBounds.X))
 
-            --onething.Visible and (textguirenderbkg["Enabled"] and 50 or 45) or
-            draw.Position = Vector2.new(newpos - 5, (70 + num + draw.TextBounds.Y))
-            num = num + (draw.TextBounds.Y - 2)
-            draw.ZIndex = 2
-            draw.Visible = true
-            textguitextdrawings[i] = draw
+                --onething.Visible and (textguirenderbkg["Enabled"] and 50 or 45) or
+                draw.Position = Vector2.new(newpos - 5, (70 + num + draw.TextBounds.Y))
+                num = num + (draw.TextBounds.Y - 2)
+                draw.ZIndex = 2
+                draw.Visible = true
+                textguitextdrawings[i] = draw
+            end
         end
     end
 
@@ -183,6 +186,7 @@ if suc and type(web) ~= "boolean" then
             textguiconnection = robloxgui:GetPropertyChangedSignal("AbsoluteSize"):connect(function()
                 UpdateHud()
             end)
+            UpdateHud()
         else
             for i,v in pairs(textguitextdrawings) do 
                 pcall(function()
