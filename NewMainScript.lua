@@ -118,17 +118,26 @@ end)
 
 if suc and type(web) ~= "boolean" then
     local vapelite
+    local vapelite2
     local draw
     local textguitextdrawings = {}
+    local textguitextdrawings2 = {}
     pcall(function()
         draw = Drawing.new("Text")
         draw.Visible = false
         vapelite = Drawing.new("Image")
+        vapelite2 = Drawing.new("Image")
         local logocheck = syn and "VapeLiteLogoSyn.png" or "VapeLiteLogo.png"
         vapelite.Data = shared.VapeDeveloper and readfile(logocheck) or game:HttpGet("https://raw.githubusercontent.com/7GrandDadPGN/VapeLiteForRoblox/main/"..logocheck, true) or ""
         vapelite.Size = Vector2.new(140, 64)
+        vapelite.ZIndex = 2
         vapelite.Position = Vector2.new(3, 36)
         vapelite.Visible = false
+        vapelite2.Data = shared.VapeDeveloper and readfile("VapeLiteLogoShadow.png") or game:HttpGet("https://raw.githubusercontent.com/7GrandDadPGN/VapeLiteForRoblox/main/VapeLiteLogoShadow.png", true) or ""
+        vapelite2.Size = Vector2.new(140, 64)
+        vapelite2.Position = Vector2.new(5, 38)
+        vapelite2.ZIndex = 1
+        vapelite2.Visible = false
     end)
     local robloxgui = game:GetService("CoreGui"):WaitForChild("RobloxGui", 10)
 
@@ -158,8 +167,15 @@ if suc and type(web) ~= "boolean" then
                     textguitextdrawings[i] = nil
                 end)
             end
+            for i,v in pairs(textguitextdrawings2) do 
+                pcall(function()
+                    v:Remove()
+                    textguitextdrawings2[i] = nil
+                end)
+            end
             local num = 0
             vapelite.Position = Vector2.new((robloxgui.AbsoluteSize.X - 4) - 140, 36)
+            vapelite2.Position = Vector2.new((robloxgui.AbsoluteSize.X - 4) - 139, 37)
             for i,v in pairs(tableofmodules) do 
                 local newpos = robloxgui.AbsoluteSize.X - 4
                 local draw = Drawing.new("Text")
@@ -171,10 +187,19 @@ if suc and type(web) ~= "boolean" then
 
                 --onething.Visible and (textguirenderbkg["Enabled"] and 50 or 45) or
                 draw.Position = Vector2.new(newpos - 5, (70 + num + draw.TextBounds.Y))
+                local draw2 = Drawing.new("Text")
+                draw2.Color = Color3.fromRGB(22, 37, 81)
+                draw2.Size = 25
+                draw2.Font = 0
+                draw2.Text = v.Text
+                draw2.Position = draw.Position + Vector2.new(1, 1)
                 num = num + (draw.TextBounds.Y - 2)
+                draw2.ZIndex = 1
                 draw.ZIndex = 2
                 draw.Visible = true
+                draw2.Visible = true
                 textguitextdrawings[i] = draw
+                textguitextdrawings2[i] = draw2
             end
         end
     end
@@ -182,6 +207,7 @@ if suc and type(web) ~= "boolean" then
     local textguiconnection
     local textgui = addModule("TextGUI", "Shows enabled modules", function(callback)
         vapelite.Visible = callback
+        vapelite2.Visible = callback
         if callback then 
             textguiconnection = robloxgui:GetPropertyChangedSignal("AbsoluteSize"):connect(function()
                 UpdateHud()
@@ -192,6 +218,12 @@ if suc and type(web) ~= "boolean" then
                 pcall(function()
                     v:Remove()
                     textguitextdrawings[i] = nil
+                end)
+            end
+            for i,v in pairs(textguitextdrawings2) do 
+                pcall(function()
+                    v:Remove()
+                    textguitextdrawings2[i] = nil
                 end)
             end
         end
@@ -595,10 +627,11 @@ if suc and type(web) ~= "boolean" then
                                     if entity and bedwars["SwordController"]:canSee(entity) then
                                         local localfacing = lplr.Character.HumanoidRootPart.CFrame.lookVector
                                         local vec = (plr.Character.HumanoidRootPart.Position - lplr.Character.HumanoidRootPart.Position).unit
+                                        local ylevel = (lplr.Character.HumanoidRootPart.Position.Y - plr.Character.HumanoidRootPart.Position.Y)
                                         local angle = math.acos(localfacing:Dot(vec))
                                         if angle <= math.rad(killaurafov.state) then
                                             local tool = equipped["Object"]
-                                            local pos = (lplr.Character.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).magnitude >= 14 and CFrame.lookAt(lplr.Character.HumanoidRootPart.Position, plr.Character.HumanoidRootPart.Position).lookVector * 4 or Vector3.new(0, 0, 0)
+                                            local pos = (lplr.Character.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).magnitude >= 14 and ((not modulesenabled["Killaura/Vertical Check"]) or ylevel <= 9) and ((not modulesenabled["Killaura/Only reach while moving"]) and lplr.Character.Humanoid.MoveDirection ~= Vector3.new(0, 0, 0)) and CFrame.lookAt(lplr.Character.HumanoidRootPart.Position, plr.Character.HumanoidRootPart.Position).lookVector * 4 or Vector3.new(0, 0, 0)
                                             Client:Get(bedwars["AttackRemote"]):CallServer({
                                                 ["weapon"] = tool,
                                                 ["entityInstance"] = plr.Character,
@@ -649,6 +682,8 @@ if suc and type(web) ~= "boolean" then
             end)
             killaura.addSlider("Attack range", 1, 18, 18, function() end)
             killaura.addSlider("Max angle", 1, 360, 360, function() end)
+            killaura.addToggle("Only reach while moving", function() end)
+            killaura.addToggle("Vertical Check", function() end)
 
             local oldhori = 10000
             local oldvert = 300
