@@ -711,6 +711,48 @@ if suc and type(web) ~= "boolean" then
                 end
             end)
 
+            local function bettermousemove(x, y)
+                mousemoverel(1, 1) mousemoveabs(x, y)
+            end
+
+            local oldopen
+            local cheststealer = addModule("ChestStealer", "Emulates mouse inputs to steal chests", function(callback)
+                if callback then 
+                    spawn(function()
+                        repeat
+                            task.wait(0.1)
+                            local open = bedwars["AppController"]:isAppOpen("ChestApp")
+                            if oldopen ~= open then 
+                                if open then 
+                                    task.wait(0.5)
+                                end
+                                oldopen = open
+                            end
+                            if open then 
+                                pcall(function()
+                                    local chestgui = lplr.PlayerGui:FindFirstChild("ChestApp")
+                                    if chestgui then 
+                                        local chestframe = chestgui["2"]["1"]["3"]["4"]["1"]
+                                        if chestframe.BackgroundColor3 == Color3.fromRGB(81, 50, 22) then 
+                                            for i,v in pairs(chestframe:GetChildren()) do 
+                                                if v:IsA("Frame") and v:FindFirstChild("2") and v["2"]:FindFirstChild("3") then
+                                                    local newpos = (v["2"].AbsolutePosition + (v["2"].AbsoluteSize / 2)) + Vector2.new(0, 36)
+                                                    if isrbxactive and mousemoverel and isrbxactive() then
+                                                        repeat bettermousemove(newpos.X, newpos.Y) task.wait(0.01) until (uis:GetMouseLocation() - newpos).magnitude <= 10
+                                                        mouse1click()
+                                                        task.wait(0.1)
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    end
+                                end)
+                            end
+                        until (not modulesenabled["ChestStealer"])
+                    end)
+                end
+            end)
+
             local healthColorToPosition = {
                 [Vector3.new(Color3.fromRGB(255, 28, 0).r,
               Color3.fromRGB(255, 28, 0).g,
