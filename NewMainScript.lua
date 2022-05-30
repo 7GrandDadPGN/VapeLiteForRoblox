@@ -1,7 +1,7 @@
 local websocketfunc = syn and syn.websocket.connect or Krnl and Krnl.WebSocket.connect or WebSocket and WebSocket.connect or websocket and websocket.connect
 local suc, web = pcall(function() return websocketfunc("ws://127.0.0.1:6892/") end)
 repeat 
-    task.wait(5)
+    task.wait(1)
     if not suc or suc and type(web) == "boolean" then
         suc, web = pcall(function() return websocketfunc("ws://127.0.0.1:6892/") end)
         if not suc or suc and type(web) == "boolean" then
@@ -735,12 +735,14 @@ if suc and type(web) ~= "boolean" then
                                         local chestframe = chestgui["2"]["1"]["3"]["4"]["1"]
                                         if chestframe.BackgroundColor3 == Color3.fromRGB(81, 50, 22) then 
                                             for i,v in pairs(chestframe:GetChildren()) do 
-                                                if v:IsA("Frame") and v:FindFirstChild("2") and v["2"]:FindFirstChild("3") then
+                                                if v:IsA("Frame") and v:FindFirstChild("2") and v["2"]:FindFirstChild("3") and bedwars["AppController"]:isAppOpen("ChestApp") then
                                                     local newpos = (v["2"].AbsolutePosition + (v["2"].AbsoluteSize / 2)) + Vector2.new(0, 36)
                                                     if isrbxactive and mousemoverel and isrbxactive() then
-                                                        repeat bettermousemove(newpos.X, newpos.Y) task.wait(0.01) until (uis:GetMouseLocation() - newpos).magnitude <= 10
-                                                        mouse1click()
-                                                        task.wait(0.1)
+                                                        repeat bettermousemove(newpos.X, newpos.Y) task.wait(0.01) until (uis:GetMouseLocation() - newpos).magnitude <= 10 or (not bedwars["AppController"]:isAppOpen("ChestApp"))
+                                                        if bedwars["AppController"]:isAppOpen("ChestApp") then
+                                                            mouse1click()
+                                                            task.wait(0.1)
+                                                        end
                                                     end
                                                 end
                                             end
