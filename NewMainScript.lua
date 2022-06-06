@@ -231,7 +231,7 @@ if suc and type(web) ~= "boolean" then
     if game.GameId == 2619619496 then
         local Flamework = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@flamework"].core.out).Flamework
 		repeat task.wait() until Flamework.isInitialized
-        local KnitClient = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"].knit.src).KnitClient
+        local KnitClient = debug.getupvalue(require(lplr.PlayerScripts.TS.knit).setup, 6)
         local Client = require(game:GetService("ReplicatedStorage").TS.remotes).default.Client
         if game.PlaceId == 6872265039 then
             local bedwars = {
