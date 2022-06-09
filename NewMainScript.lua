@@ -277,6 +277,7 @@ if suc and type(web) ~= "boolean" then
                         ["hand"] = nil
                     })
                 end,
+                ["KatanaController"] = KnitClient.Controllers.DaoController,
                 ["ItemTable"] = debug.getupvalue(require(game:GetService("ReplicatedStorage").TS.item["item-meta"]).getItemMeta, 1),
                 ["PlayerUtil"] = require(game:GetService("ReplicatedStorage").TS.player["player-util"]).GamePlayerUtil,
                 ["SoundManager"] = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["game-core"].out).SoundManager,
@@ -446,7 +447,7 @@ if suc and type(web) ~= "boolean" then
                             local targettable = {}
                             local targetsize = 0
                             local plr = GetNearestHumanoidToPosition(true, 18)
-                            if plr and getEquipped()["Type"] == "sword" and #bedwars["AppController"]:getOpenApps() <= 1 and isNotHoveringOverGui() and bedwars["SwordController"]:canSee({["instance"] = plr.Character, ["player"] = plr, ["getInstance"] = function() return plr.Character end}) then
+                            if plr and getEquipped()["Type"] == "sword" and #bedwars["AppController"]:getOpenApps() <= 1 and isNotHoveringOverGui() and bedwars["SwordController"]:canSee({["instance"] = plr.Character, ["player"] = plr, ["getInstance"] = function() return plr.Character end}) and bedwars["KatanaController"].chargingMaid == nil then
                                 local pos, vis = cam:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
                                 if vis and isrbxactive() then
                                     local senst = UserSettings():GetService("UserGameSettings").MouseSensitivity * (1 - (aimmulti.state / 100))
@@ -517,7 +518,7 @@ if suc and type(web) ~= "boolean" then
                     spawn(function()
                         repeat
                             task.wait((1 / makerandom(math.clamp(cpsmodule.state - 2, 1, 20), cpsmodule.state)))
-                            if isAlive() and autoclickermousedown and #bedwars["AppController"]:getOpenApps() <= 1 and isNotHoveringOverGui() then 
+                            if isAlive() and autoclickermousedown and #bedwars["AppController"]:getOpenApps() <= 1 and isNotHoveringOverGui() and bedwars["KatanaController"].chargingMaid == nil then 
                                 if getEquipped()["Type"] == "sword" then 
                                     spawn(function()
                                         bedwars["SwordController"]:swingSwordAtMouse()
