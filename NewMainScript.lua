@@ -517,11 +517,12 @@ if suc and type(web) ~= "boolean" then
                     local cpsmodule = findOption("AutoClicker", "CPS")
                     spawn(function()
                         repeat
-                            task.wait((1 / makerandom(math.clamp(cpsmodule.state - 2, 1, 20), cpsmodule.state)))
+                            task.wait()
                             if isAlive() and autoclickermousedown and #bedwars["AppController"]:getOpenApps() <= 1 and isNotHoveringOverGui() and bedwars["KatanaController"].chargingMaid == nil then 
                                 if getEquipped()["Type"] == "sword" then 
                                     spawn(function()
                                         bedwars["SwordController"]:swingSwordAtMouse()
+                                        task.wait((1 / makerandom(math.clamp(cpsmodule.state - 2, 1, 9), cpsmodule.state)))
                                     end)
                                 end
                                 if getEquipped()["Type"] == "block" and modulesenabled["AutoClicker/Place Block"] and bedwars["BlockPlacementController"].blockPlacer then 
@@ -533,6 +534,7 @@ if suc and type(web) ~= "boolean" then
                                             end
                                         end)
                                     end
+                                    task.wait((1 / makerandom(math.clamp(cpsmodule.state - 2, 1, 20), cpsmodule.state)))
                                 end
                             end
                         until modulesenabled["AutoClicker"] == false
