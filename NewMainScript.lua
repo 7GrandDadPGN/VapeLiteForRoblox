@@ -625,7 +625,7 @@ if suc and type(web) ~= "boolean" then
                             local equipped = getEquipped()
                             if equipped["Type"] == "sword" then
                                 local plr = getplayersnear(killaurareach.state - 0.001)
-                                if plr then 
+                                if plr and (tick() - bedwars["SwordController"].lastAttack) >= (bedwars["ItemTable"][equipped.Object.Name].sword.attackSpeed + 0.1) then 
                                     local entity = bedwars["getEntityTable"]:getEntity(plr.Character)
                                     if entity and bedwars["SwordController"]:canSee(entity) then
                                         local localfacing = lplr.Character.HumanoidRootPart.CFrame.lookVector
@@ -635,6 +635,7 @@ if suc and type(web) ~= "boolean" then
                                         if angle <= math.rad(killaurafov.state) then
                                             local tool = equipped["Object"]
                                             local pos = (lplr.Character.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).magnitude >= 14 and ((not modulesenabled["Killaura/Vertical Check"]) or ylevel <= 9) and ((not modulesenabled["Killaura/Only reach while moving"]) and lplr.Character.Humanoid.MoveDirection ~= Vector3.new(0, 0, 0)) and CFrame.lookAt(lplr.Character.HumanoidRootPart.Position, plr.Character.HumanoidRootPart.Position).lookVector * 4 or Vector3.new(0, 0, 0)
+                                            bedwars["SwordController"].lastAttack = tick()
                                             Client:Get(bedwars["AttackRemote"]):CallServer({
                                                 ["weapon"] = tool,
                                                 ["entityInstance"] = plr.Character,
@@ -738,7 +739,7 @@ if suc and type(web) ~= "boolean" then
                                         local chestframe = chestgui["2"]["1"]["3"]["4"]["1"]
                                         if chestframe.BackgroundColor3 == Color3.fromRGB(81, 50, 22) then 
                                             for i,v in pairs(chestframe:GetChildren()) do 
-                                                if v:IsA("Frame") and v:FindFirstChild("2") and v["2"]:FindFirstChild("3") and bedwars["AppController"]:isAppOpen("ChestApp") then
+                                                if v:IsA("Frame") and v:FindFirstChild("2") and v["2"]:FindFirstChild("4") and bedwars["AppController"]:isAppOpen("ChestApp") then
                                                     local newpos = (v["2"].AbsolutePosition + (v["2"].AbsoluteSize / 2)) + Vector2.new(0, 36)
                                                     if isrbxactive and mousemoverel and isrbxactive() then
                                                         repeat bettermousemove(newpos.X, newpos.Y) task.wait(0.01) until (uis:GetMouseLocation() - newpos).magnitude <= 10 or (not bedwars["AppController"]:isAppOpen("ChestApp"))
