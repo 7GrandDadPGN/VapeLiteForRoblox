@@ -1,5 +1,12 @@
-local websocketfunc = syn and syn.websocket.connect or Krnl and Krnl.WebSocket.connect or WebSocket and WebSocket.connect or websocket and websocket.connect
+local websocketfunc = syn and syn.websocket and syn.websocket.connect or Krnl and Krnl.WebSocket.connect or WebSocket and WebSocket.connect or websocket and websocket.connect
 local suc, web = pcall(function() return websocketfunc("ws://127.0.0.1:6892/") end)
+if syn and syn.toast_notification then 
+    suc, web = pcall(function() 
+        local socket = WebsocketClient.new("ws://127.0.0.1:6892/")
+        socket:Connect()
+        return socket 
+    end)
+end
 repeat 
     task.wait(1)
     if not suc or suc and type(web) == "boolean" then
@@ -265,6 +272,8 @@ if suc and type(web) ~= "boolean" then
                 ["BlockController"] = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["block-engine"].out).BlockEngine,
                 ["BlockPlacementController"] = KnitClient.Controllers.BlockPlacementController,
                 ["BlockEngine"] = require(lplr.PlayerScripts.TS.lib["block-engine"]["client-block-engine"]).ClientBlockEngine,
+                ["BowTable"] = KnitClient.Controllers.ProjectileController,
+                ["BowConstantsTable"] = debug.getupvalue(KnitClient.Controllers.ProjectileController.enableBeam, 5),
                 ["ClientHandlerSyncEvents"] = require(lplr.PlayerScripts.TS["client-sync-events"]).ClientSyncEvents,
                 ["ClientStoreHandler"] = require(game.Players.LocalPlayer.PlayerScripts.TS.ui.store).ClientStore,
                 ["getEntityTable"] = require(game:GetService("ReplicatedStorage").TS.entity["entity-util"]).EntityUtil,
@@ -280,6 +289,7 @@ if suc and type(web) ~= "boolean" then
                 ["KatanaController"] = KnitClient.Controllers.DaoController,
                 ["ItemTable"] = debug.getupvalue(require(game:GetService("ReplicatedStorage").TS.item["item-meta"]).getItemMeta, 1),
                 ["PlayerUtil"] = require(game:GetService("ReplicatedStorage").TS.player["player-util"]).GamePlayerUtil,
+                ["ProjectileMeta"] = require(game:GetService("ReplicatedStorage").TS.projectile["projectile-meta"]).ProjectileMeta,
                 ["SoundManager"] = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["game-core"].out).SoundManager,
 			    ["SoundList"] = require(game:GetService("ReplicatedStorage").TS.sound["game-sound"]).GameSound,
                 ["sprintTable"] = KnitClient.Controllers.SprintController,
@@ -294,17 +304,9 @@ if suc and type(web) ~= "boolean" then
             end
 
             bedwars["AttackRemote"] = getremote(debug.getconstants(getmetatable(KnitClient.Controllers.SwordController)["attackEntity"]))
-            for i,v in pairs(debug.getupvalues(getmetatable(KnitClient.Controllers.SwordController)["attackEntity"])) do
-                if tostring(v) == "AC" then
-                    bedwars["AttackHashTable"] = v
-                    for i2,v2 in pairs(v) do
-                        if i2:find("constructor") == nil and i2:find("__index") == nil and i2:find("new") == nil then
-                            bedwars["AttackHashFunction"] = v2
-                            bedwars["AttachHashText"] = i2
-                        end
-                    end
-                end
-            end
+
+            local localserverpos
+            local otherserverpos = {}
 
             local function getEquipped()
                 local typetext = ""
@@ -330,6 +332,15 @@ if suc and type(web) ~= "boolean" then
                     end
                 end
                 return nil
+            end
+
+            local function getItemInList(list)
+                local inv = bedwars["ClientStoreHandler"]:getState().Inventory.observedInventory.inventory.items
+                for i,v in pairs(inv) do 
+                    if table.find(list, v.itemType) then 
+                        return v.itemType
+                    end
+                end
             end
 
             local function getBestTool(block)
@@ -385,6 +396,25 @@ if suc and type(web) ~= "boolean" then
                 return plr ~= lplr and plr and isAlive(plr) and targetCheck(plr, target) and bedwars["PlayerUtil"].getGamePlayer(lplr):getTeamId() ~= bedwars["PlayerUtil"].getGamePlayer(plr):getTeamId()
             end
 
+            local function GetNearestHumanoidToMouse(player, distance, checkvis)
+                local closest, returnedplayer = distance, nil
+                if isAlive() then
+                    for i, v in pairs(players:GetChildren()) do
+                        if isPlayerTargetable((player and v or nil), true, true) and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Head") then
+                            local vec, vis = cam:WorldToScreenPoint(v.Character.HumanoidRootPart.Position)
+                            if vis then
+                                local mag = (uis:GetMouseLocation() - Vector2.new(vec.X, vec.Y)).magnitude
+                                if mag <= closest then
+                                    closest = mag
+                                    returnedplayer = v
+                                end
+                            end
+                        end
+                    end
+                end
+                return returnedplayer, closest
+            end
+
             local function GetNearestHumanoidToPosition(player, distance)
                 local closest, returnedplayer = distance, nil
                 if isAlive() then
@@ -415,27 +445,36 @@ if suc and type(web) ~= "boolean" then
                 end
                 return true
             end
+
+            task.spawn(function()
+                local postable = {}
+                local postable2 = {}
+                repeat
+                    task.wait()
+                    if isAlive() then
+                        table.insert(postable, lplr.Character.PrimaryPart.Position)
+                        if #postable > 60 then 
+                            table.remove(postable, 1)
+                        end
+                        localserverpos = postable[46] or lplr.Character.PrimaryPart.Position
+                    end
+                    for i, v in pairs(players:GetChildren()) do
+                        if isPlayerTargetable((player and v or nil), true, true) and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Head") then
+                            if postable2[v] == nil then 
+                                postable2[v] = v.Character.PrimaryPart.Position
+                            end
+                            otherserverpos[v] = v.Character.PrimaryPart.Position + ((v.Character.PrimaryPart.Position - postable2[v]) * 3)
+                            postable2[v] = v.Character.PrimaryPart.Position
+                        end
+                    end
+                until uninjectflag
+            end)
             
             local autoclickertick = tick()
             local autoclickerconnection1
             local autoclickerconnection2
-            local aimbegan
-            local aimended
-            local aimactive = false
             local aimassist = addModule("AimAssist", "Automatically aims for you.", function(callback)
                 if callback then
-                    aimbegan = uis.InputBegan:connect(function(input1)
-                        if uis:GetFocusedTextBox() == nil and input1.UserInputType == Enum.UserInputType.MouseButton1 then
-                            aimactive = true
-                        end
-                    end)
-                    
-                    aimended = uis.InputEnded:connect(function(input1)
-                        if input1.UserInputType == Enum.UserInputType.MouseButton1 then
-                            aimactive = false
-                        end
-                    end)
-
                     local function aimpos(vec, multiplier)
                         local newvec = (vec - uis:GetMouseLocation() - Vector2.new(0, 36)) * tonumber(multiplier)
                         mousemoverel(newvec.X, newvec.Y)
@@ -443,7 +482,7 @@ if suc and type(web) ~= "boolean" then
 
                     local aimmulti = findOption("AimAssist", "Smoothness")
                     BindToRenderStep("AimAssist", 1, function()
-                        if aimactive then
+                        if ((tick() - bedwars["SwordController"].lastSwing) < 0.4 or modulesenabled["AimAssist/Always Active"]) then
                             local targettable = {}
                             local targetsize = 0
                             local plr = GetNearestHumanoidToPosition(true, 18)
@@ -459,12 +498,10 @@ if suc and type(web) ~= "boolean" then
                     end)
                 else
                     UnbindFromRenderStep("AimAssist")
-                    aimbegan:Disconnect()
-                    aimended:Disconnect()
-                    aimactive = false
                 end
             end)
             aimassist.addSlider("Smoothness", 0, 100, 80, function() end)
+            aimassist.addToggle("Always Active", function(callback) end)
             local balloondebounce = false
             local autoballoon = addModule("AutoBalloon", "Inflates balloons after under a certain y level", function(callback)
                 if callback then
@@ -591,12 +628,24 @@ if suc and type(web) ~= "boolean" then
                                 if ray and ray.Instance and (lplr.Character.PrimaryPart.Position - ray.Instance.Position).Magnitude > 14.4 then
                                     local entity = bedwars["getEntityTable"]:getEntity(ray.Instance)
                                     if entity and bedwars["SwordController"]:canSee(entity) then
-                                        local tool = equipped["Object"]
+                                        local selfroot = lplr.Character.PrimaryPart
+                                        local selfrootpos = selfroot.Position
+                                        local selfcheck = localserverpos or selfrootpos
+                                        local realplr = players:GetPlayerFromCharacter(entity:getInstance())
                                         local plr = {Character = entity:getInstance()}
-                                        Client:Get(bedwars["AttackRemote"]):CallServer({
+                                        local root = plr.Character.PrimaryPart
+                                        local tool = equipped["Object"]
+                                        local swordmeta = bedwars["ItemTable"][tool.Name]
+                                        if (selfcheck - (otherserverpos[realplr] or root.Position)).Magnitude > 18 then 
+                                            return nil
+                                        end
+                                        if (workspace:GetServerTimeNow() - bedwars["SwordController"].lastAttack) < (swordmeta.sword.attackSpeed - 0.11) then 
+                                            return nil
+                                        end
+                                        Client:Get(bedwars["AttackRemote"]):SendToServer({
                                             ["weapon"] = tool,
                                             ["entityInstance"] = plr.Character,
-                                            ["chargedAttack"] = {chargeRatio = 1},
+                                            ["chargedAttack"] = {chargeRatio = swordmeta.sword and swordmeta.sword.chargedAttack and swordmeta.sword.chargedAttack.maxChargeTimeSec or 0},
                                             ["validate"] = {
                                                 ["raycast"] = {
                                                     ["cameraPosition"] = hashvec(cam.CFrame.p), 
@@ -606,6 +655,7 @@ if suc and type(web) ~= "boolean" then
                                                 ["selfPosition"] = hashvec(lplr.Character.HumanoidRootPart.Position + (CFrame.lookAt(lplr.Character.HumanoidRootPart.Position, plr.Character.HumanoidRootPart.Position).lookVector * 4))
                                             }
                                         })
+                                        bedwars["SwordController"].lastAttack = workspace:GetServerTimeNow()
                                     end
                                 end
                             end
@@ -625,21 +675,29 @@ if suc and type(web) ~= "boolean" then
                             local equipped = getEquipped()
                             if equipped["Type"] == "sword" then
                                 local plr = getplayersnear(killaurareach.state - 0.001)
-                                if plr and (tick() - bedwars["SwordController"].lastAttack) >= (bedwars["ItemTable"][equipped.Object.Name].sword.attackSpeed + 0.1) then 
+                                local tool = equipped["Object"]
+                                local swordmeta = bedwars["ItemTable"][tool.Name]
+                                if plr and (workspace:GetServerTimeNow() - bedwars["SwordController"].lastAttack) > (swordmeta.sword.attackSpeed - 0.11) then
                                     local entity = bedwars["getEntityTable"]:getEntity(plr.Character)
                                     if entity and bedwars["SwordController"]:canSee(entity) then
+                                        local selfroot = lplr.Character.PrimaryPart
+                                        local selfrootpos = selfroot.Position
+                                        local selfcheck = localserverpos or selfrootpos
+                                        local root = plr.Character.PrimaryPart
+                                        if (selfcheck - (otherserverpos[plr] or root.Position)).Magnitude > 18 then 
+                                            return nil
+                                        end
                                         local localfacing = lplr.Character.HumanoidRootPart.CFrame.lookVector
                                         local vec = (plr.Character.HumanoidRootPart.Position - lplr.Character.HumanoidRootPart.Position).unit
                                         local ylevel = (lplr.Character.HumanoidRootPart.Position.Y - plr.Character.HumanoidRootPart.Position.Y)
                                         local angle = math.acos(localfacing:Dot(vec))
                                         if angle <= math.rad(killaurafov.state) then
-                                            local tool = equipped["Object"]
                                             local pos = (lplr.Character.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).magnitude >= 14 and ((not modulesenabled["Killaura/Vertical Check"]) or ylevel <= 9) and ((not modulesenabled["Killaura/Only reach while moving"]) and lplr.Character.Humanoid.MoveDirection ~= Vector3.new(0, 0, 0)) and CFrame.lookAt(lplr.Character.HumanoidRootPart.Position, plr.Character.HumanoidRootPart.Position).lookVector * 4 or Vector3.new(0, 0, 0)
-                                            bedwars["SwordController"].lastAttack = tick()
-                                            Client:Get(bedwars["AttackRemote"]):CallServer({
+                                            bedwars["SwordController"].lastAttack = workspace:GetServerTimeNow()
+                                            Client:Get(bedwars["AttackRemote"]):SendToServer({
                                                 ["weapon"] = tool,
                                                 ["entityInstance"] = plr.Character,
-                                                ["chargedAttack"] = {chargeRatio = 1},
+                                                ["chargedAttack"] = {chargeRatio = swordmeta.sword and swordmeta.sword.chargedAttack and swordmeta.sword.chargedAttack.maxChargeTimeSec or 0},
                                                 ["validate"] = {
                                                     ["raycast"] = {
                                                         ["cameraPosition"] = hashvec(cam.CFrame.p), 
@@ -758,6 +816,124 @@ if suc and type(web) ~= "boolean" then
                     end)
                 end
             end)
+
+            --skidded off the devforum because I hate projectile math
+            -- Compute 2D launch angle
+            -- v: launch velocity
+            -- g: gravity (positive) e.g. 196.2
+            -- d: horizontal distance
+            -- h: vertical distance
+            -- higherArc: if true, use the higher arc. If false, use the lower arc.
+            local function LaunchAngle(v: number, g: number, d: number, h: number, higherArc: boolean)
+                local v2 = v * v
+                local v4 = v2 * v2
+                local root = math.sqrt(v4 - g*(g*d*d + 2*h*v2))
+                if not higherArc then root = -root end
+                return math.atan((v2 + root) / (g * d))
+            end
+
+            -- Compute 3D launch direction from
+            -- start: start position
+            -- target: target position
+            -- v: launch velocity
+            -- g: gravity (positive) e.g. 196.2
+            -- higherArc: if true, use the higher arc. If false, use the lower arc.
+            local function LaunchDirection(start, target, v, g, higherArc: boolean)
+                -- get the direction flattened:
+                local horizontal = Vector3.new(target.X - start.X, 0, target.Z - start.Z)
+                
+                local h = target.Y - start.Y
+                local d = horizontal.Magnitude
+                local a = LaunchAngle(v, g, d, h, higherArc)
+                
+                -- NaN ~= NaN, computation couldn't be done (e.g. because it's too far to launch)
+                if a ~= a then return nil end
+                
+                -- speed if we were just launching at a flat angle:
+                local vec = horizontal.Unit * v
+                
+                -- rotate around the axis perpendicular to that direction...
+                local rotAxis = Vector3.new(-horizontal.Z, 0, horizontal.X)
+                
+                -- ...by the angle amount
+                return CFrame.fromAxisAngle(rotAxis, a) * vec
+            end
+
+            local function FindLeadShot(targetPosition: Vector3, targetVelocity: Vector3, projectileSpeed: Number, shooterPosition: Vector3, shooterVelocity: Vector3, gravity: Number)
+                local distance = (targetPosition - shooterPosition).Magnitude
+
+                local p = targetPosition - shooterPosition
+                local v = targetVelocity - shooterVelocity
+                local a = Vector3.zero
+
+                local timeTaken = (distance / projectileSpeed)
+                
+                if gravity > 0 then
+                    local timeTaken = projectileSpeed/gravity+math.sqrt(2*distance/gravity+projectileSpeed^2/gravity^2)
+                end
+
+                local goalX = targetPosition.X + v.X*timeTaken + 0.5 * a.X * timeTaken^2
+                local goalY = targetPosition.Y + v.Y*timeTaken + 0.5 * a.Y * timeTaken^2
+                local goalZ = targetPosition.Z + v.Z*timeTaken + 0.5 * a.Z * timeTaken^2
+                
+                return Vector3.new(goalX, goalY, goalZ)
+            end
+
+            local projectileaimbot = addModule("ProjectileAimbot", "Aimbot for Projectiles", function(callback)
+                if callback then 
+                    local function aimpos(vec, multiplier)
+                        local newvec = (vec - uis:GetMouseLocation() - Vector2.new(0, 36)) * tonumber(multiplier)
+                        mousemoverel(newvec.X, newvec.Y)
+                    end
+
+                   -- local aimmulti = findOption("ProjectileAimbot", "Smoothness")
+                    local beamdiscovered
+                    local beamtick
+                    BindToRenderStep("ProjectileAimbot", 1, function()
+                        local beam = workspace.ProjectileTargeting:FindFirstChild("Beam")
+                        if beam ~= beamdiscovered then 
+                            if beam then beamtick = tick() end
+                            beamdiscovered = beam
+                        end
+                        if beam then
+                            local item = getEquipped()
+                            if item.Object then 
+                                local plr = GetNearestHumanoidToMouse(true, 1000)
+                                if plr then 
+                                    local shootpos = bedwars["BowTable"]:getLaunchPosition(lplr.Character)
+                                    if not shootpos then return end
+                                    local itemmeta = bedwars["ItemTable"][item.Object.Name]
+                                    if not itemmeta.projectileSource then return end
+                                    local ammo = getItemInList(itemmeta.projectileSource.ammoItemTypes)
+                                    if not ammo then return end
+                                    if (not modulesenabled["ProjectileAimbot/Other Projeciles"]) and ammo:find("arrow") == nil then return end
+                                    local projmetatab = bedwars["ProjectileMeta"][ammo]
+                                    local prediction = (worldmeta and projmetatab.predictionLifetimeSec or projmetatab.lifetimeSec or 3)
+                                    local launchvelo = (projmetatab.launchVelocity or 100)
+                                    local gravity = (projmetatab.gravitationalAcceleration or 196.2)
+                                    local multigrav = gravity
+                                    local offsetshootpos = shootpos + Vector3.new(0, 2, 0)
+                                    local pos = (plr.Character.HumanoidRootPart.Position + Vector3.new(0, 0.8, 0)) 
+                                    local newlook = CFrame.new(offsetshootpos, pos) * CFrame.new(Vector3.new(-bedwars["BowConstantsTable"].RelX, 0.6, 0))
+						            pos = newlook.p + (newlook.lookVector * (offsetshootpos - pos).magnitude)
+                                    local velo = Vector3.new(plr.Character.HumanoidRootPart.Velocity.X, plr.Character.HumanoidRootPart.Velocity.Y * 0.02, plr.Character.HumanoidRootPart.Velocity.Z)
+                                    if ammo == "telepearl" then
+                                        velo = Vector3.zero
+                                    end
+                                    local calculated = LaunchDirection(offsetshootpos, FindLeadShot(pos, velo, launchvelo, offsetshootpos, Vector3.zero, multigrav), launchvelo, gravity, false)
+                                    if calculated then
+                                        local finalpos = cam:WorldToViewportPoint(cam.CFrame.p + (calculated.Unit - Vector3.new(0, 0.05, 0)))
+                                        aimpos(Vector2.new(finalpos.X, finalpos.Y), 1)
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                else
+                    UnbindFromRenderStep("ProjectileAimbot")
+                end
+            end)
+            projectileaimbot.addToggle("Other Projeciles", function() end)
 
             local healthColorToPosition = {
                 [Vector3.new(Color3.fromRGB(255, 28, 0).r,
@@ -1194,7 +1370,8 @@ if suc and type(web) ~= "boolean" then
             tracers.addToggle("Start Bottom Position", function() end)
         end
     end
-    web.OnMessage:Connect(function(msg)
+
+    local function datafunc(msg)
         local tab = game:GetService("HttpService"):JSONDecode(msg)
         if tab.msg == "togglemodule" then
             local module = findModule(tab.module)
@@ -1236,7 +1413,13 @@ if suc and type(web) ~= "boolean" then
         elseif tab.msg == "readsettings" then
             readsettings:Fire(tab.result)
         end
-    end)
+    end
+
+    if syn and syn.toast_notification then 
+        web.DataReceived:Connect(datafunc)
+    else
+        web.OnMessage:Connect(datafunc)
+    end
     sendrequest({
         msg = "readsettings",
         id = (game.PlaceId == 6872265039 and "bedwarslobby" or "bedwarsmain")
@@ -1281,7 +1464,8 @@ if suc and type(web) ~= "boolean" then
         msg = "connectrequest",
         modules = modules
     })
-    web.OnClose:Connect(function()
+
+    local function connectionclose()
         for i,v in pairs(modulefunctions) do 
             local ok = findModule(i)
             if ok ~= nil and modulesenabled[i] then
@@ -1297,7 +1481,13 @@ if suc and type(web) ~= "boolean" then
                 loadstring(readfile("vapelite.lua"))()
             end
         end)
-    end)
+    end
+
+    if syn and syn.toast_notification then 
+        web.ConnectionClosed:Connect(connectionclose)
+    else
+        web.OnClose:Connect(connectionclose)
+    end
 else
     print("websocket error:", web)
 end
