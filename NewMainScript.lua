@@ -923,7 +923,8 @@ if suc and type(web) ~= "boolean" then
                                     local calculated = LaunchDirection(offsetshootpos, FindLeadShot(pos, velo, launchvelo, offsetshootpos, Vector3.zero, multigrav), launchvelo, gravity, false)
                                     if calculated then
                                         local finalpos = cam:WorldToViewportPoint(cam.CFrame.p + (calculated.Unit - Vector3.new(0, 0.05, 0)))
-                                        aimpos(Vector2.new(finalpos.X, finalpos.Y), 1)
+                                        local senst = UserSettings():GetService("UserGameSettings").MouseSensitivity 
+                                        aimpos(Vector2.new(finalpos.X, finalpos.Y), senst)
                                     end
                                 end
                             end
