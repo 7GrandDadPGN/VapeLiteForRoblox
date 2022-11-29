@@ -35,6 +35,8 @@ local lplr = players.LocalPlayer
 local uis = game:GetService("UserInputService")
 local cam = workspace.CurrentCamera
 local RenderStepTable = {}
+local savesettings = true
+local loaded = false
 
 local function BindToRenderStep(name, num, func)
 	if RenderStepTable[name] == nil then
@@ -57,7 +59,7 @@ end
 
 local function getplayersnear(range)
     if isAlive() then
-        for i,v in pairs(players:GetChildren()) do 
+        for i,v in pairs(players:GetPlayers()) do 
             if v ~= lplr and v:GetAttribute("Team") ~= lplr:GetAttribute("Team") and isAlive(v) and (lplr.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).magnitude <= range then 
                 return v
             end
@@ -144,7 +146,7 @@ if suc and type(web) ~= "boolean" then
         draw.Visible = false
         vapelite = Drawing.new("Image")
         vapelite2 = Drawing.new("Image")
-        local logocheck = syn and "VapeLiteLogoSyn.png" or "VapeLiteLogo.png"
+        local logocheck = syn and syn.toast_notification == nil and "VapeLiteLogoSyn.png" or "VapeLiteLogo.png"
         vapelite.Data = shared.VapeDeveloper and readfile(logocheck) or game:HttpGet("https://raw.githubusercontent.com/7GrandDadPGN/VapeLiteForRoblox/main/"..logocheck, true) or ""
         vapelite.Size = Vector2.new(140, 64)
         vapelite.ZIndex = 2
@@ -254,16 +256,25 @@ if suc and type(web) ~= "boolean" then
             local bedwars = {
                 ["sprintTable"] = KnitClient.Controllers.SprintController,
             }
+            local sprintconnection
             local sprint = addModule("Sprint", "Automatically sprints for you.", function(callback)
                 if callback then
-                    spawn(function()
+                    task.spawn(function()
                         repeat
                             task.wait()
-                            if bedwars["sprintTable"].sprinting == false then
+                            if (not modulesenabled["Sprint"]) then break end
+                            if (not bedwars["sprintTable"].sprinting) then
                                 bedwars["sprintTable"]:startSprinting()
                             end
-                        until modulesenabled["Sprint"] == false
+                        until (not modulesenabled["Sprint"])
                     end)
+                    sprintconnection = lplr.CharacterAdded:Connect(function(char)
+                        char:WaitForChild("Humanoid", 9e9)
+                        bedwars["sprintTable"]:stopSprinting()
+                    end)
+                else
+                    bedwars["sprintTable"]:stopSprinting()
+                    if sprintconnection then sprintconnection:Disconnect() end
                 end
             end)
         else
@@ -409,7 +420,7 @@ if suc and type(web) ~= "boolean" then
             local function GetNearestHumanoidToMouse(player, distance, checkvis)
                 local closest, returnedplayer = distance, nil
                 if isAlive() then
-                    for i, v in pairs(players:GetChildren()) do
+                    for i, v in pairs(players:GetPlayers()) do
                         if isPlayerTargetable((player and v or nil), true, true) and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Head") then
                             local vec, vis = cam:WorldToScreenPoint(v.Character.HumanoidRootPart.Position)
                             if vis then
@@ -428,7 +439,7 @@ if suc and type(web) ~= "boolean" then
             local function GetNearestHumanoidToPosition(player, distance)
                 local closest, returnedplayer = distance, nil
                 if isAlive() then
-                    for i, v in pairs(players:GetChildren()) do
+                    for i, v in pairs(players:GetPlayers()) do
                         if isPlayerTargetable((player and v or nil), true, true) and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Head") then
                             local mag = (lplr.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).magnitude
                             if mag <= closest then
@@ -441,20 +452,23 @@ if suc and type(web) ~= "boolean" then
                 return returnedplayer
             end
 
-            local function isNotHoveringOverGui()
-                local mousepos = game:GetService("UserInputService"):GetMouseLocation() - Vector2.new(0, 36)
-                for i,v in pairs(game:GetService("Players").LocalPlayer.PlayerGui:GetGuiObjectsAtPosition(mousepos.X, mousepos.Y)) do 
-                    if v.Active then
-                        return false
-                    end
-                end
-                for i,v in pairs(game:GetService("CoreGui"):GetGuiObjectsAtPosition(mousepos.X, mousepos.Y)) do 
-                    if v.Active then
-                        return false
-                    end
-                end
-                return true
-            end
+            	local function isNotHoveringOverGui()
+					local mousepos = uis:GetMouseLocation() - Vector2.new(0, 36)
+					for i,v in pairs(lplr.PlayerGui:GetGuiObjectsAtPosition(mousepos.X, mousepos.Y)) do 
+						if v.Active then
+							return false
+						end
+					end
+					for i,v in pairs(game:GetService("CoreGui"):GetGuiObjectsAtPosition(mousepos.X, mousepos.Y)) do 
+						if v.Parent:IsA("ScreenGui") and v.Parent.Enabled then
+							if v.Active then
+								return false
+							end
+						end
+					end
+					return true
+				end
+
 
             task.spawn(function()
                 local postable = {}
@@ -468,8 +482,8 @@ if suc and type(web) ~= "boolean" then
                         end
                         localserverpos = postable[46] or lplr.Character.PrimaryPart.Position
                     end
-                    for i, v in pairs(players:GetChildren()) do
-                        if isPlayerTargetable((player and v or nil), true, true) and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Head") then
+                    for i, v in pairs(players:GetPlayers()) do
+                        if v.Character and v.Character.PrimaryPart then
                             if postable2[v] == nil then 
                                 postable2[v] = v.Character.PrimaryPart.Position
                             end
@@ -502,7 +516,6 @@ if suc and type(web) ~= "boolean" then
                                     local senst = UserSettings():GetService("UserGameSettings").MouseSensitivity * (1 - (aimmulti.state / 100))
                                     aimpos(Vector2.new(pos.X, pos.Y), senst)
                                 end
-                                --cam.CFrame = cam.CFrame:lerp(CFrame.new(cam.CFrame.p, plr.Character.HumanoidRootPart.Position), (1 / AimSpeed["Value"]) - (AimAssistStrafe["Enabled"] and (uis:IsKeyDown(Enum.KeyCode.A) or uis:IsKeyDown(Enum.KeyCode.D)) and 0.01 or 0))
                             end
                         end
                     end)
@@ -517,7 +530,7 @@ if suc and type(web) ~= "boolean" then
                 if callback then
                     local balloonylevel = findOption("AutoBalloon", "Y Level")
                     local balloondelay = findOption("AutoBalloon", "Delay")
-                    spawn(function()
+                    task.spawn(function()
                         repeat
                             task.wait(0.1)
                             if isAlive() then
@@ -562,26 +575,26 @@ if suc and type(web) ~= "boolean" then
                         end
                     end)
                     local cpsmodule = findOption("AutoClicker", "CPS")
-                    spawn(function()
+                    task.spawn(function()
                         repeat
                             task.wait()
-                            if isAlive() and autoclickermousedown and #bedwars["AppController"]:getOpenApps() <= 1 and isNotHoveringOverGui() and bedwars["KatanaController"].chargingMaid == nil then 
-                                if getEquipped()["Type"] == "sword" then 
-                                    spawn(function()
+                            if isAlive() and autoclickermousedown and #bedwars["AppController"]:getOpenApps() <= 2 and isNotHoveringOverGui() then 
+                                if getEquipped()["Type"] == "sword" and bedwars["KatanaController"].chargingMaid == nil then 
+                                    task.spawn(function()
                                         bedwars["SwordController"]:swingSwordAtMouse()
-                                        task.wait((1 / makerandom(math.clamp(cpsmodule.state - 2, 1, 9), cpsmodule.state)))
                                     end)
+                                    task.wait(math.max(1 / makerandom(math.clamp(cpsmodule.state - 2, 1, 20), cpsmodule.state), 0.18))
                                 end
                                 if getEquipped()["Type"] == "block" and modulesenabled["AutoClicker/Place Block"] and bedwars["BlockPlacementController"].blockPlacer then 
                                     local mouseinfo = bedwars["BlockPlacementController"].blockPlacer.clientManager:getBlockSelector():getMouseInfo(0)
                                     if mouseinfo then
-                                        spawn(function()
+                                        task.spawn(function()
                                             if bedwars["BlockPlacementController"].blockPlacer then
                                                 bedwars["BlockPlacementController"].blockPlacer:placeBlock(mouseinfo.placementPosition)
                                             end
                                         end)
                                     end
-                                    task.wait((1 / makerandom(math.clamp(cpsmodule.state - 2, 1, 20), cpsmodule.state)))
+                                    task.wait(math.max(1 / makerandom(math.clamp(cpsmodule.state - 2, 1, 20), cpsmodule.state), 0.084))
                                 end
                             end
                         until modulesenabled["AutoClicker"] == false
@@ -612,16 +625,87 @@ if suc and type(web) ~= "boolean" then
                     end
                 end
             end)
+
+            local function setModuleEnabled(modname, enabled)
+                if modulesenabled[modname] then 
+                    modulesenabled[modname] = false
+                    modulefunctions[modname](false)
+                end
+            end
+
+            local function setSlider(modname, modname2, val)
+                local option = findOption(modname, modname2)
+                if option then 
+                    modulesenabled[modname.."/"..modname2] = val
+                    modulefunctions[modname..modname2](false)
+                    option.state = val
+                end
+            end
+
+            local function funny(plr)
+                pcall(function()
+                    local text = Drawing.new("Text")
+                    text.Text = "Staff Detected : "..(plr.DisplayName and plr.DisplayName.." ("..plr.Name..")" or plr.Name)
+                    text.Size = 30
+                    text.Color = Color3.new(1, 1, 1)
+                    text.Outline = true
+                    text.Visible = true
+                    text.Position = Vector2.new((cam.ViewportSize.X / 2) - (text.TextBounds.X / 2), 36 - text.TextBounds.Y)
+                    task.wait(10)
+                    text:Remove()
+                end)
+            end
+
+            local function autoleaveplr(plr)
+                task.spawn(function()
+                    repeat task.wait() until loaded
+                    pcall(function()
+                        if plr:GetRankInGroup(5774246) >= 100 and (plr.UserId ~= 87365146 or shared.VapePrivate) then
+                            savesettings = false
+                            setModuleEnabled("Velocity", false)
+                            setModuleEnabled("Reach", false)
+                            setSlider("Killaura", "Attack range", 14)
+                            setSlider("Killaura", "Max angle", 90)
+                            print("e")
+                            if modulesenabled["AutoLeave/Notification"] then 
+                                funny(plr)
+                            end
+                        end
+                    end)
+                end)
+            end
+
+            local autoleaveconnection
+            local autoleave = addModule("AutoLeave", "Automatically uninjects when staff joins", function(callback)
+                if callback then
+                    autoleaveconnection = players.PlayerAdded:Connect(autoleaveplr)
+                    for i, plr in pairs(players:GetPlayers()) do
+                        autoleaveplr(plr)
+                    end
+                else
+                    autoleaveconnection:Disconnect()
+                end
+            end)
+            autoleave.addToggle("Notification", function() end)
+            local sprintconnection
             local sprint = addModule("Sprint", "Automatically sprints for you.", function(callback)
                 if callback then
-                    spawn(function()
+                    task.spawn(function()
                         repeat
                             task.wait()
-                            if bedwars["sprintTable"].sprinting == false then
+                            if (not modulesenabled["Sprint"]) then break end
+                            if (not bedwars["sprintTable"].sprinting) then
                                 bedwars["sprintTable"]:startSprinting()
                             end
-                        until modulesenabled["Sprint"] == false
+                        until (not modulesenabled["Sprint"])
                     end)
+                    sprintconnection = lplr.CharacterAdded:Connect(function(char)
+                        char:WaitForChild("Humanoid", 9e9)
+                        bedwars["sprintTable"]:stopSprinting()
+                    end)
+                else
+                    bedwars["sprintTable"]:stopSprinting()
+                    if sprintconnection then sprintconnection:Disconnect() end
                 end
             end)
             local reachfunc
@@ -635,10 +719,9 @@ if suc and type(web) ~= "boolean" then
                                 rayparams.FilterDescendantsInstances = {lplr.Character}
                                 rayparams.FilterType = Enum.RaycastFilterType.Blacklist
                                 local ray = workspace:Raycast(lplr:GetMouse().UnitRay.Origin, lplr:GetMouse().UnitRay.Direction * 17.99, rayparams)
-                                if ray and ray.Instance and (lplr.Character.PrimaryPart.Position - ray.Instance.Position).Magnitude > 14.4 then
+                                if ray and ray.Instance and (workspace:GetServerTimeNow() - bedwars["SwordController"].lastAttack) >= swordmeta.sword.attackSpeed then
                                     local entity = bedwars["getEntityTable"]:getEntity(ray.Instance)
                                     if entity and bedwars["SwordController"]:canSee(entity) then
-                                        local selfroot = lplr.Character.PrimaryPart
                                         local selfrootpos = selfroot.Position
                                         local selfcheck = localserverpos or selfrootpos
                                         local realplr = players:GetPlayerFromCharacter(entity:getInstance())
@@ -649,23 +732,27 @@ if suc and type(web) ~= "boolean" then
                                         if (selfcheck - (otherserverpos[realplr] or root.Position)).Magnitude > 18 then 
                                             return nil
                                         end
-                                        if (workspace:GetServerTimeNow() - bedwars["SwordController"].lastAttack) < (swordmeta.sword.attackSpeed - 0.11) then 
-                                            return nil
+                                        if (selfrootpos - root.Position).magnitude > 14.4 then 
+                                            if modulesenabled["Reach/Vertical Check"] and math.abs(selfrootpos.Y - root.Position.Y) > 9 then 
+                                                pos = Vector3.zero
+                                            elseif modulesenabled["Reach/Only reach while moving"] and lplr.Character.Humanoid.MoveDirection == Vector3.zero then 
+                                                pos = Vector3.zero
+                                            end
                                         end
+                                        bedwars["SwordController"].lastAttack = workspace:GetServerTimeNow()
                                         Client:Get(bedwars["AttackRemote"]):SendToServer({
                                             ["weapon"] = tool,
-                                            ["entityInstance"] = plr.Character,
                                             ["chargedAttack"] = {chargeRatio = swordmeta.sword and swordmeta.sword.chargedAttack and swordmeta.sword.chargedAttack.maxChargeTimeSec or 0},
+                                            ["entityInstance"] = plr.Character,
                                             ["validate"] = {
                                                 ["raycast"] = {
                                                     ["cameraPosition"] = hashvec(cam.CFrame.p), 
-                                                    ["cursorDirection"] = hashvec(Ray.new(cam.CFrame.p, plr.Character.HumanoidRootPart.Position).Unit.Direction)
+                                                    ["cursorDirection"] = hashvec(Ray.new(cam.CFrame.p, root.Position).Unit.Direction)
                                                 },
-                                                ["targetPosition"] = hashvec(plr.Character.HumanoidRootPart.Position),
-                                                ["selfPosition"] = hashvec(lplr.Character.HumanoidRootPart.Position + (CFrame.lookAt(lplr.Character.HumanoidRootPart.Position, plr.Character.HumanoidRootPart.Position).lookVector * 4))
+                                                ["targetPosition"] = hashvec(root.Position),
+                                                ["selfPosition"] = hashvec(selfrootpos + (CFrame.lookAt(selfrootpos, root.Position).lookVector * 4))
                                             }
                                         })
-                                        bedwars["SwordController"].lastAttack = workspace:GetServerTimeNow()
                                     end
                                 end
                             end
@@ -675,6 +762,8 @@ if suc and type(web) ~= "boolean" then
                     reachfunc:Disconnect()
                 end
             end)
+            reach.addToggle("Only reach while moving", function() end)
+            reach.addToggle("Vertical Check", function() end)
             local killaurafunc
             local killaura = addModule("Killaura", "Hits no matter where you aim", function(callback)
                 if callback then
@@ -684,65 +773,44 @@ if suc and type(web) ~= "boolean" then
                         if anim.Animation.AnimationId == "rbxassetid://8089691925" then
                             local equipped = getEquipped()
                             if equipped["Type"] == "sword" then
-                                local plr = getplayersnear(killaurareach.state - 0.001)
+                                local plr = getplayersnear(math.max(killaurareach.state + 0.4, 18))
                                 local tool = equipped["Object"]
                                 local swordmeta = bedwars["ItemTable"][tool.Name]
-                                if plr and (workspace:GetServerTimeNow() - bedwars["SwordController"].lastAttack) > (swordmeta.sword.attackSpeed - 0.11) then
+                                if plr and (workspace:GetServerTimeNow() - bedwars["SwordController"].lastAttack) >= swordmeta.sword.attackSpeed then
                                     local entity = bedwars["getEntityTable"]:getEntity(plr.Character)
                                     if entity and bedwars["SwordController"]:canSee(entity) then
-                                        local selfroot = lplr.Character.PrimaryPart
-                                        local selfrootpos = selfroot.Position
-                                        local selfcheck = localserverpos or selfrootpos
                                         local root = plr.Character.PrimaryPart
-                                        if (selfcheck - (otherserverpos[plr] or root.Position)).Magnitude > 18 then 
+                                        local selfrootpos = lplr.Character.PrimaryPart.Position
+                                        local selfcheck = localserverpos or selfrootpos
+                                        local pos = CFrame.lookAt(selfrootpos, root.Position).lookVector * 4
+                                        if (selfrootpos - root.Position).magnitude > 14.4 then 
+                                            if modulesenabled["Killaura/Vertical Check"] and math.abs(selfrootpos.Y - root.Position.Y) > 9 then 
+                                                pos = Vector3.zero
+                                            elseif modulesenabled["Killaura/Only reach while moving"] and lplr.Character.Humanoid.MoveDirection == Vector3.zero then 
+                                                pos = Vector3.zero
+                                            end
+                                        end
+                                        if (selfcheck - (otherserverpos[plr] or root.Position)).Magnitude > math.max(14.4 + pos.Magnitude, 18) then 
                                             return nil
                                         end
-                                        local localfacing = lplr.Character.HumanoidRootPart.CFrame.lookVector
-                                        local vec = (plr.Character.HumanoidRootPart.Position - lplr.Character.HumanoidRootPart.Position).unit
-                                        local ylevel = (lplr.Character.HumanoidRootPart.Position.Y - plr.Character.HumanoidRootPart.Position.Y)
-                                        local angle = math.acos(localfacing:Dot(vec))
-                                        if angle <= math.rad(killaurafov.state) then
-                                            local pos = (lplr.Character.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).magnitude >= 14 and ((not modulesenabled["Killaura/Vertical Check"]) or ylevel <= 9) and ((not modulesenabled["Killaura/Only reach while moving"]) and lplr.Character.Humanoid.MoveDirection ~= Vector3.new(0, 0, 0)) and CFrame.lookAt(lplr.Character.HumanoidRootPart.Position, plr.Character.HumanoidRootPart.Position).lookVector * 4 or Vector3.new(0, 0, 0)
-                                            bedwars["SwordController"].lastAttack = workspace:GetServerTimeNow()
-                                            Client:Get(bedwars["AttackRemote"]):SendToServer({
-                                                ["weapon"] = tool,
-                                                ["entityInstance"] = plr.Character,
-                                                ["chargedAttack"] = {chargeRatio = swordmeta.sword and swordmeta.sword.chargedAttack and swordmeta.sword.chargedAttack.maxChargeTimeSec or 0},
-                                                ["validate"] = {
-                                                    ["raycast"] = {
-                                                        ["cameraPosition"] = hashvec(cam.CFrame.p), 
-                                                        ["cursorDirection"] = hashvec(Ray.new(cam.CFrame.p, plr.Character.HumanoidRootPart.Position).Unit.Direction)
-                                                    },
-                                                    ["targetPosition"] = hashvec(plr.Character.HumanoidRootPart.Position),
-                                                    ["selfPosition"] = hashvec(lplr.Character.HumanoidRootPart.Position + pos)
-                                                }
-                                            })
-                                        end
-                                    end
-                                end
-                            --[[ local rayparams = RaycastParams.new()
-                                rayparams.FilterDescendantsInstances = {lplr.Character}
-                                rayparams.FilterType = Enum.RaycastFilterType.Blacklist
-                                local ray = workspace:Raycast(lplr:GetMouse().UnitRay.Origin, lplr:GetMouse().UnitRay.Direction * 17.99, rayparams)
-                                if ray and ray.Instance and (lplr.Character.PrimaryPart.Position - ray.Instance.Position).Magnitude > 14.4 then
-                                    local entity = bedwars["getEntityTable"]:getEntity(ray.Instance)
-                                    if entity and bedwars["SwordController"]:canSee(entity) then
-                                        local tool = equipped["Object"]
-                                        local plr = {Character = entity:getInstance()}
-                                        Client:Get(bedwars["AttackRemote"]):CallServer({
+                                        local angle = math.acos(lplr.Character.PrimaryPart.CFrame.lookVector:Dot((root.Position - selfrootpos).unit))
+                                        if angle >= (math.rad(killaurafov.state) / 2) then return end
+                                        bedwars["SwordController"].lastAttack = workspace:GetServerTimeNow()
+                                        Client:Get(bedwars["AttackRemote"]):SendToServer({
                                             ["weapon"] = tool,
                                             ["entityInstance"] = plr.Character,
+                                            ["chargedAttack"] = {chargeRatio = swordmeta.sword and swordmeta.sword.chargedAttack and swordmeta.sword.chargedAttack.maxChargeTimeSec or 0},
                                             ["validate"] = {
                                                 ["raycast"] = {
                                                     ["cameraPosition"] = hashvec(cam.CFrame.p), 
-                                                    ["cursorDirection"] = hashvec(Ray.new(cam.CFrame.p, plr.Character.HumanoidRootPart.Position).Unit.Direction)
+                                                    ["cursorDirection"] = hashvec(Ray.new(cam.CFrame.p, root.Position).Unit.Direction)
                                                 },
-                                                ["targetPosition"] = hashvec(plr.Character.HumanoidRootPart.Position),
-                                                ["selfPosition"] = hashvec(lplr.Character.HumanoidRootPart.Position + (CFrame.lookAt(lplr.Character.HumanoidRootPart.Position, plr.Character.HumanoidRootPart.Position).lookVector * 4))
+                                                ["targetPosition"] = hashvec(root.Position),
+                                                ["selfPosition"] = hashvec(selfrootpos + pos)
                                             }
                                         })
                                     end
-                                end]]
+                                end
                             end
                         end
                     end)
@@ -790,7 +858,7 @@ if suc and type(web) ~= "boolean" then
             local oldopen
             local cheststealer = addModule("ChestStealer", "Emulates mouse inputs to steal chests", function(callback)
                 if callback then 
-                    spawn(function()
+                    task.spawn(function()
                         repeat
                             task.wait(0.1)
                             local open = bedwars["AppController"]:isAppOpen("ChestApp")
@@ -923,7 +991,7 @@ if suc and type(web) ~= "boolean" then
                                     local gravity = (projmetatab.gravitationalAcceleration or 196.2)
                                     local multigrav = gravity
                                     local offsetshootpos = shootpos + Vector3.new(0, 2, 0)
-                                    local pos = (plr.Character.HumanoidRootPart.Position + Vector3.new(0, 0.8, 0)) 
+                                    local pos = (plr.Character.HumanoidRootPart.Position + Vector3.new(0, 0.8, 0))
                                     local newlook = CFrame.new(offsetshootpos, pos) * CFrame.new(Vector3.new(-bedwars["BowConstantsTable"].RelX, 0.6, 0))
 						            pos = newlook.p + (newlook.lookVector * (offsetshootpos - pos).magnitude)
                                     local velo = Vector3.new(plr.Character.HumanoidRootPart.Velocity.X, plr.Character.HumanoidRootPart.Velocity.Y * 0.02, plr.Character.HumanoidRootPart.Velocity.Z)
@@ -934,7 +1002,7 @@ if suc and type(web) ~= "boolean" then
                                     if calculated then
                                         local finalpos = cam:WorldToViewportPoint(cam.CFrame.p + (calculated.Unit - Vector3.new(0, 0.05, 0)))
                                         local senst = UserSettings():GetService("UserGameSettings").MouseSensitivity 
-                                        aimpos(Vector2.new(finalpos.X, finalpos.Y), senst)
+                                        aimpos(Vector2.new(finalpos.X, finalpos.Y), 0.20800000429153442 / senst)
                                     end
                                 end
                             end
@@ -1039,7 +1107,7 @@ if suc and type(web) ~= "boolean" then
                         end
                     end)
                     BindToRenderStep("ESP", 500, function()
-                        for i,plr in pairs(players:GetChildren()) do
+                        for i,plr in pairs(players:GetPlayers()) do
                             local thing
                             if not modulesenabled["ESP/Skeleton"] then
                                 if espfolderdrawing[plr.Name] then
@@ -1252,7 +1320,7 @@ if suc and type(web) ~= "boolean" then
                     end)
                     local nametagscale = findOption("NameTags", "Scale")
                     BindToRenderStep("NameTags", 500, function()
-                        for i,plr in pairs(players:GetChildren()) do
+                        for i,plr in pairs(players:GetPlayers()) do
                             local thing
                             if nametagsfolderdrawing[plr.Name] then
                                 thing = nametagsfolderdrawing[plr.Name]
@@ -1329,7 +1397,7 @@ if suc and type(web) ~= "boolean" then
                     end)
                     local tracerstransparency = findOption("Tracers", "Transparency")
                     BindToRenderStep("Tracers", 500, function()
-                        for i,plr in pairs(players:GetChildren()) do
+                        for i,plr in pairs(players:GetPlayers()) do
                             local thing
                             if tracersdrawingtab[plr.Name] then 
                                 thing = tracersdrawingtab[plr.Name]
@@ -1390,11 +1458,13 @@ if suc and type(web) ~= "boolean" then
                 modulefunctions[tab.module](tab.state)
                 module.toggled = tab.state
                 modulesenabled[tab.module] = tab.state
-                sendrequest({
-                    msg = "writesettings",
-                    id = (game.PlaceId == 6872265039 and "bedwarslobby" or "bedwarsmain"),
-                    content = game:GetService("HttpService"):JSONEncode(modulesenabled)
-                })
+                if savesettings then
+                    sendrequest({
+                        msg = "writesettings",
+                        id = (game.PlaceId == 6872265039 and "bedwarslobby" or "bedwarsmain"),
+                        content = game:GetService("HttpService"):JSONEncode(modulesenabled)
+                    })
+                end
             end
             UpdateHud()
         elseif tab.msg == "togglebuttontoggle" then
@@ -1403,11 +1473,13 @@ if suc and type(web) ~= "boolean" then
                 modulefunctions[tab.module..tab.setting](tab.state)
                 module.toggled = tab.state
                 modulesenabled[tab.module.."/"..tab.setting] = tab.state
-                sendrequest({
-                    msg = "writesettings",
-                    id = (game.PlaceId == 6872265039 and "bedwarslobby" or "bedwarsmain"),
-                    content = game:GetService("HttpService"):JSONEncode(modulesenabled)
-                })
+                if savesettings then
+                    sendrequest({
+                        msg = "writesettings",
+                        id = (game.PlaceId == 6872265039 and "bedwarslobby" or "bedwarsmain"),
+                        content = game:GetService("HttpService"):JSONEncode(modulesenabled)
+                    })
+                end
             end
         elseif tab.msg == "togglebuttonslider" then
             local module = findOption(tab.module, tab.setting)
@@ -1415,11 +1487,13 @@ if suc and type(web) ~= "boolean" then
                 modulefunctions[tab.module..tab.setting](tab.state)
                 module.state = tab.state
                 modulesenabled[tab.module.."/"..tab.setting] = tab.state
-                sendrequest({
-                    msg = "writesettings",
-                    id = (game.PlaceId == 6872265039 and "bedwarslobby" or "bedwarsmain"),
-                    content = game:GetService("HttpService"):JSONEncode(modulesenabled)
-                })
+                if savesettings then
+                    sendrequest({
+                        msg = "writesettings",
+                        id = (game.PlaceId == 6872265039 and "bedwarslobby" or "bedwarsmain"),
+                        content = game:GetService("HttpService"):JSONEncode(modulesenabled)
+                    })
+                end
             end
         elseif tab.msg == "readsettings" then
             readsettings:Fire(tab.result)
@@ -1437,7 +1511,6 @@ if suc and type(web) ~= "boolean" then
     })
     local settingss = readsettings.Event:Wait()
     local suc2, settingstab = pcall(function() return game:GetService("HttpService"):JSONDecode(settingss) end)
-    local loaded = false
     if suc2 then
         for i,v in pairs(settingstab) do 
             local module = i:find("/") and findOption(unpack(i:split("/"))) or findModule(i)
@@ -1484,7 +1557,7 @@ if suc and type(web) ~= "boolean" then
                 modulesenabled[i] = false
             end
         end
-        spawn(function()
+        task.spawn(function()
             if shared.noinject == nil then
                 repeat task.wait() until game:IsLoaded()
                 repeat task.wait(5) until isfile("vapelite.injectable.txt")
