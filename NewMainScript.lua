@@ -656,22 +656,30 @@ if suc and type(web) ~= "boolean" then
                 end)
             end
 
+            local function getRole(plr)
+                local suc, res = pcall(function() return plr:GetRankInGroup(5774246) end)
+                if not suc then 
+                    repeat
+                        suc, res = pcall(function() return plr:GetRankInGroup(5774246) end)
+                        task.wait()
+                    until suc
+                end
+                return res
+            end
+
             local function autoleaveplr(plr)
                 task.spawn(function()
                     repeat task.wait() until loaded
-                    pcall(function()
-                        if plr:GetRankInGroup(5774246) >= 100 and (plr.UserId ~= 87365146 or shared.VapePrivate) then
-                            savesettings = false
-                            setModuleEnabled("Velocity", false)
-                            setModuleEnabled("Reach", false)
-                            setSlider("Killaura", "Attack range", 14)
-                            setSlider("Killaura", "Max angle", 90)
-                            print("e")
-                            if modulesenabled["AutoLeave/Notification"] then 
-                                funny(plr)
-                            end
+                    if getRole(plr) >= 100 then
+                        savesettings = false
+                        setModuleEnabled("Velocity", false)
+                        setModuleEnabled("Reach", false)
+                        setSlider("Killaura", "Attack range", 14)
+                        setSlider("Killaura", "Max angle", 90)
+                        if modulesenabled["AutoLeave/Notification"] then 
+                            funny(plr)
                         end
-                    end)
+                    end
                 end)
             end
 
