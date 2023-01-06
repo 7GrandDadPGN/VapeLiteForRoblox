@@ -732,7 +732,7 @@ if suc and type(web) ~= "boolean" then
                                 if ray and ray.Instance and (workspace:GetServerTimeNow() - bedwars["SwordController"].lastAttack) >= swordmeta.sword.attackSpeed then
                                     local entity = bedwars["getEntityTable"]:getEntity(ray.Instance)
                                     if entity and bedwars["SwordController"]:canSee(entity) then
-                                        local selfrootpos = selfroot.Position
+                                        local selfrootpos = lplr.Character.PrimaryPart.Position
                                         local selfcheck = localserverpos or selfrootpos
                                         local realplr = players:GetPlayerFromCharacter(entity:getInstance())
                                         local plr = {Character = entity:getInstance()}
