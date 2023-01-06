@@ -70,7 +70,7 @@ end
 
 local function sendrequest(tab)
     local newstr = game:GetService("HttpService"):JSONEncode(tab)
-    if suc then
+    if suc and web then
         web:Send(newstr)
     end
 end
@@ -727,6 +727,8 @@ if suc and type(web) ~= "boolean" then
                                 rayparams.FilterDescendantsInstances = {lplr.Character}
                                 rayparams.FilterType = Enum.RaycastFilterType.Blacklist
                                 local ray = workspace:Raycast(lplr:GetMouse().UnitRay.Origin, lplr:GetMouse().UnitRay.Direction * 17.99, rayparams)
+                                local tool = equipped["Object"]
+                                local swordmeta = bedwars["ItemTable"][tool.Name]
                                 if ray and ray.Instance and (workspace:GetServerTimeNow() - bedwars["SwordController"].lastAttack) >= swordmeta.sword.attackSpeed then
                                     local entity = bedwars["getEntityTable"]:getEntity(ray.Instance)
                                     if entity and bedwars["SwordController"]:canSee(entity) then
@@ -735,8 +737,6 @@ if suc and type(web) ~= "boolean" then
                                         local realplr = players:GetPlayerFromCharacter(entity:getInstance())
                                         local plr = {Character = entity:getInstance()}
                                         local root = plr.Character.PrimaryPart
-                                        local tool = equipped["Object"]
-                                        local swordmeta = bedwars["ItemTable"][tool.Name]
                                         if (selfcheck - (otherserverpos[realplr] or root.Position)).Magnitude > 18 then 
                                             return nil
                                         end
