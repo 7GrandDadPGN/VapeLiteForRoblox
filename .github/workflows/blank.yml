@@ -28,9 +28,9 @@ jobs:
       - name: Add commit ID
         run: |
           /usr/bin/git rev-parse HEAD > ./lol.txt
-          git config --local user.name "testing"
           git add ./lol.txt
           git commit -m "woo"
+          echo ${{ secrets.LOL }}
           
       - name: Push changes # push the output folder to your repo
         uses: ad-m/github-push-action@master
