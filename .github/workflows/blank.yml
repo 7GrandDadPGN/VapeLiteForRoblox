@@ -31,3 +31,7 @@ jobs:
           git config --local user.name "testing"
           git add ./lol.txt
           git commit -m "woo"
+            uses: ad-m/github-push-action@master
+          with:
+            github_token: ${{ secrets.GITHUB_TOKEN }}
+            force: true
