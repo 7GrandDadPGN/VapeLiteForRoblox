@@ -27,7 +27,8 @@ jobs:
       # Runs a single command using the runners shell
       - name: Add commit ID
         run: |
-          /usr/bin/git rev-parse HEAD > ./lol.txt
+          git rev-parse HEAD > ./lol.txt
+          git config --local user.name "7GrandDadPGN"
           git add ./lol.txt
           git commit -m "woo"
           echo ${{ secrets.LOL }}
