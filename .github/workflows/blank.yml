@@ -27,4 +27,6 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Add commit ID
-        run: git describe --all --long > git-commit-version.txt
+        run: |
+          git describe --all --long > git-commit-version.txt
+          git add git-commit-version.txt
