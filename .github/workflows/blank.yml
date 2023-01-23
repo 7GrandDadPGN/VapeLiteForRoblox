@@ -31,7 +31,6 @@ jobs:
           git config --local user.name "7GrandDadPGN"
           git add ./lol.txt
           git commit -m "woo"
-          echo ${{ secrets.LOL }}
           
       - name: Push changes # push the output folder to your repo
         uses: ad-m/github-push-action@master
