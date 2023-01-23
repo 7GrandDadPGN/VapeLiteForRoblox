@@ -27,7 +27,4 @@ jobs:
       # Runs a single command using the runners shell
       - name: Add commit ID
         run: |
-          /usr/bin/git rev-parse HEAD > ./lol.txt
-          /usr/bin/git add ./
-          echo /usr/bin/git rev-parse HEAD
-          echo hello world!
+          /usr/bin/git rev-parse HEAD > /home/runner/work/VapeLiteForRoblox/VapeLiteForRoblox/lol.txt
