@@ -1,6 +1,5 @@
 local websocketfunc = syn and syn.websocket and syn.websocket.connect or Krnl and Krnl.WebSocket.connect or WebSocket and WebSocket.connect or websocket and websocket.connect
 local suc, web
-
 if syn and syn.toast_notification then 
     suc, web = pcall(function() 
         local socket = WebsocketClient.new("ws://127.0.0.1:6892/")
@@ -56,17 +55,6 @@ local function isAlive(plr)
 		return plr and plr.Character and plr.Character.Parent ~= nil and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChild("Humanoid")
 	end
 	return lplr and lplr.Character and lplr.Character.Parent ~= nil and lplr.Character:FindFirstChild("HumanoidRootPart") and lplr.Character:FindFirstChild("Head") and lplr.Character:FindFirstChild("Humanoid")
-end
-
-local function getplayersnear(range)
-    if isAlive() then
-        for i,v in pairs(players:GetPlayers()) do 
-            if v ~= lplr and v:GetAttribute("Team") ~= lplr:GetAttribute("Team") and isAlive(v) and (lplr.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).magnitude <= range then 
-                return v
-            end
-        end
-    end 
-    return nil
 end
 
 local function sendrequest(tab)
@@ -453,23 +441,33 @@ if suc and type(web) ~= "boolean" then
                 return returnedplayer
             end
 
-            	local function isNotHoveringOverGui()
-					local mousepos = uis:GetMouseLocation() - Vector2.new(0, 36)
-					for i,v in pairs(lplr.PlayerGui:GetGuiObjectsAtPosition(mousepos.X, mousepos.Y)) do 
-						if v.Active then
-							return false
-						end
-					end
-					for i,v in pairs(game:GetService("CoreGui"):GetGuiObjectsAtPosition(mousepos.X, mousepos.Y)) do 
-						if v.Parent:IsA("ScreenGui") and v.Parent.Enabled then
-							if v.Active then
-								return false
-							end
-						end
-					end
-					return true
-				end
+            local function isNotHoveringOverGui()
+                local mousepos = uis:GetMouseLocation() - Vector2.new(0, 36)
+                for i,v in pairs(lplr.PlayerGui:GetGuiObjectsAtPosition(mousepos.X, mousepos.Y)) do 
+                    if v.Active then
+                        return false
+                    end
+                end
+                for i,v in pairs(game:GetService("CoreGui"):GetGuiObjectsAtPosition(mousepos.X, mousepos.Y)) do 
+                    if v.Parent:IsA("ScreenGui") and v.Parent.Enabled then
+                        if v.Active then
+                            return false
+                        end
+                    end
+                end
+                return true
+            end
 
+            local function getplayersnear(range)
+                if isAlive() then
+                    for i,v in pairs(players:GetPlayers()) do 
+                        if v ~= lplr and v:GetAttribute("Team") ~= lplr:GetAttribute("Team") and isAlive(v) and (lplr.Character.HumanoidRootPart.Position - (otherserverpos[v] or v.Character.HumanoidRootPart.Position)).magnitude <= range then 
+                            return v
+                        end
+                    end
+                end 
+                return nil
+            end
 
             task.spawn(function()
                 local postable = {}
@@ -782,7 +780,7 @@ if suc and type(web) ~= "boolean" then
                         if anim.Animation.AnimationId == "rbxassetid://8089691925" then
                             local equipped = getEquipped()
                             if equipped["Type"] == "sword" then
-                                local plr = getplayersnear(math.max(killaurareach.state + 0.4, 18))
+                                local plr = getplayersnear(math.max(killaurareach.state + 0.4, 18), check)
                                 local tool = equipped["Object"]
                                 local swordmeta = bedwars["ItemTable"][tool.Name]
                                 if plr and (workspace:GetServerTimeNow() - bedwars["SwordController"].lastAttack) >= swordmeta.sword.attackSpeed then
