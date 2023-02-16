@@ -243,26 +243,27 @@ if suc and type(web) ~= "boolean" then
         local Client = require(game:GetService("ReplicatedStorage").TS.remotes).default.Client
         if game.PlaceId == 6872265039 then
             local bedwars = {
-                ["sprintTable"] = KnitClient.Controllers.SprintController,
+                SprintController = KnitClient.Controllers.SprintController,
             }
             local sprintconnection
+            local oldsprint
             local sprint = addModule("Sprint", "Automatically sprints for you.", function(callback)
                 if callback then
-                    task.spawn(function()
-                        repeat
-                            task.wait()
-                            if (not modulesenabled["Sprint"]) then break end
-                            if (not bedwars["sprintTable"].sprinting) then
-                                bedwars["sprintTable"]:startSprinting()
-                            end
-                        until (not modulesenabled["Sprint"])
-                    end)
+                    oldsprint = bedwars.SprintController.stopSprinting
+                    bedwars.SprintController.stopSprinting = function(...)
+                        local res = oldsprint(...)
+                        bedwars.SprintController:startSprinting()
+                        return res
+                    end
                     sprintconnection = lplr.CharacterAdded:Connect(function(char)
                         char:WaitForChild("Humanoid", 9e9)
-                        bedwars["sprintTable"]:stopSprinting()
+                        task.wait(0.5)
+                        bedwars.SprintController:stopSprinting()
                     end)
+                    bedwars.SprintController:startSprinting()
                 else
-                    bedwars["sprintTable"]:stopSprinting()
+                    bedwars.SprintController.stopSprinting = oldsprint
+                    bedwars.SprintController:stopSprinting()
                     if sprintconnection then sprintconnection:Disconnect() end
                 end
             end)
@@ -278,42 +279,43 @@ if suc and type(web) ~= "boolean" then
 
             local InventoryUtil = require(game:GetService("ReplicatedStorage").TS.inventory["inventory-util"]).InventoryUtil
             local bedwars = {   
-                ["AppController"] = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["game-core"].out.client.controllers["app-controller"]).AppController,
-                ["BlockController"] = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["block-engine"].out).BlockEngine,
-                ["BlockPlacementController"] = KnitClient.Controllers.BlockPlacementController,
-                ["BlockEngine"] = require(lplr.PlayerScripts.TS.lib["block-engine"]["client-block-engine"]).ClientBlockEngine,
-                ["BowTable"] = KnitClient.Controllers.ProjectileController,
-                ["BowConstantsTable"] = debug.getupvalue(KnitClient.Controllers.ProjectileController.enableBeam, 5),
-                ["ClientHandlerSyncEvents"] = require(lplr.PlayerScripts.TS["client-sync-events"]).ClientSyncEvents,
-                ["ClientStoreHandler"] = require(game.Players.LocalPlayer.PlayerScripts.TS.ui.store).ClientStore,
-                ["getEntityTable"] = require(game:GetService("ReplicatedStorage").TS.entity["entity-util"]).EntityUtil,
-                ["getItemMetadata"] = require(game:GetService("ReplicatedStorage").TS.item["item-meta"]).getItemMeta,
-                ["getInventory"] = function(plr)
+                AppController = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["game-core"].out.client.controllers["app-controller"]).AppController,
+                BlockController = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["block-engine"].out).BlockEngine,
+                BlockPlacementController = KnitClient.Controllers.BlockPlacementController,
+                BlockEngine = require(lplr.PlayerScripts.TS.lib["block-engine"]["client-block-engine"]).ClientBlockEngine,
+                BowTable = KnitClient.Controllers.ProjectileController,
+                BowConstantsTable = debug.getupvalue(KnitClient.Controllers.ProjectileController.enableBeam, 5),
+                ClientHandlerSyncEvents = require(lplr.PlayerScripts.TS["client-sync-events"]).ClientSyncEvents,
+                ClientStoreHandle = require(game.Players.LocalPlayer.PlayerScripts.TS.ui.store).ClientStore,
+                getEntityTable = require(game:GetService("ReplicatedStorage").TS.entity["entity-util"]).EntityUtil,
+                getItemMetadata = require(game:GetService("ReplicatedStorage").TS.item["item-meta"]).getItemMeta,
+                getInventory = function(plr)
                     local suc, result = pcall(function() return InventoryUtil.getInventory(plr) end)
                     return (suc and result or {
-                        ["items"] = {},
-                        ["armor"] = {},
-                        ["hand"] = nil
+                        items = {},
+                        armor = {},
+                        hand = nil
                     })
                 end,
-                ["KatanaController"] = KnitClient.Controllers.DaoController,
-                ["ItemTable"] = debug.getupvalue(require(game:GetService("ReplicatedStorage").TS.item["item-meta"]).getItemMeta, 1),
-                ["PlayerUtil"] = require(game:GetService("ReplicatedStorage").TS.player["player-util"]).GamePlayerUtil,
-                ["ProjectileMeta"] = require(game:GetService("ReplicatedStorage").TS.projectile["projectile-meta"]).ProjectileMeta,
-                ["SoundManager"] = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["game-core"].out).SoundManager,
-			    ["SoundList"] = require(game:GetService("ReplicatedStorage").TS.sound["game-sound"]).GameSound,
-                ["sprintTable"] = KnitClient.Controllers.SprintController,
-                ["SwordController"] = KnitClient.Controllers.SwordController,
-                ["ViewmodelController"] = KnitClient.Controllers.ViewmodelController,
+                KatanaController = KnitClient.Controllers.DaoController,
+                KnockbackUtil = require(game:GetService("ReplicatedStorage").TS.damage["knockback-util"]).KnockbackUtil,
+                ItemTable = debug.getupvalue(require(game:GetService("ReplicatedStorage").TS.item["item-meta"]).getItemMeta, 1),
+                PlayerUtil = require(game:GetService("ReplicatedStorage").TS.player["player-util"]).GamePlayerUtil,
+                ProjectileMeta = require(game:GetService("ReplicatedStorage").TS.projectile["projectile-meta"]).ProjectileMeta,
+                SoundManager = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["game-core"].out).SoundManager,
+			    SoundList = require(game:GetService("ReplicatedStorage").TS.sound["game-sound"]).GameSound,
+                SprintController = KnitClient.Controllers.SprintController,
+                SwordController = KnitClient.Controllers.SwordController,
+                ViewmodelController = KnitClient.Controllers.ViewmodelController,
             }
 
             local function hashvec(vec)
                 return {
-                    ["value"] = vec
+                    value = vec
                 }
             end
 
-            bedwars["AttackRemote"] = getremote(debug.getconstants(getmetatable(KnitClient.Controllers.SwordController)["attackEntity"]))
+            bedwars.AttackRemote = getremote(debug.getconstants(getmetatable(KnitClient.Controllers.SwordController).attackEntity))
 
             local localserverpos
             local otherserverpos = {}
@@ -388,7 +390,7 @@ if suc and type(web) ~= "boolean" then
 
             local function switchToAndUseTool(block)
                 local tool = getBestTool(block.Name)
-                if tool and (isAlive() and lplr.Character:FindFirstChild("HandInvItem") and lplr.Character.HandInvItem.Value ~= tool["tool"]) then
+                if tool and (isAlive() and lplr.Character:FindFirstChild("HandInvItem") and lplr.Character.HandInvItem.state ~= tool["tool"]) then
                     bedwars["ClientStoreHandler"]:dispatch({
                         type = "InventorySelectHotbarSlot", 
                         slot = getItemFromHotbar(tool["itemType"])
@@ -492,7 +494,16 @@ if suc and type(web) ~= "boolean" then
                     end
                 until uninjectflag
             end)
-            
+
+            local attackevent = Instance.new("BindableEvent")
+            local attackhook = bedwars.SwordController.playSwordEffect
+            bedwars.SwordController.playSwordEffect = function(...)
+                local res = attackhook(...)
+                attackevent:Fire()
+                return res
+            end
+            task.spawn(function() repeat task.wait() until uninjectflag bedwars.SwordController.playSwordEffect = attackhook end)
+
             local autoclickertick = tick()
             local autoclickerconnection1
             local autoclickerconnection2
@@ -694,73 +705,74 @@ if suc and type(web) ~= "boolean" then
                 end
             end)
             autoleave.addToggle("Notification", function() end)
+
             local sprintconnection
+            local oldsprint
             local sprint = addModule("Sprint", "Automatically sprints for you.", function(callback)
                 if callback then
-                    task.spawn(function()
-                        repeat
-                            task.wait()
-                            if (not modulesenabled["Sprint"]) then break end
-                            if (not bedwars["sprintTable"].sprinting) then
-                                bedwars["sprintTable"]:startSprinting()
-                            end
-                        until (not modulesenabled["Sprint"])
-                    end)
+                    oldsprint = bedwars.SprintController.stopSprinting
+                    bedwars.SprintController.stopSprinting = function(...)
+                        local res = oldsprint(...)
+                        bedwars.SprintController:startSprinting()
+                        return res
+                    end
                     sprintconnection = lplr.CharacterAdded:Connect(function(char)
                         char:WaitForChild("Humanoid", 9e9)
-                        bedwars["sprintTable"]:stopSprinting()
+                        task.wait(0.5)
+                        bedwars.SprintController:stopSprinting()
                     end)
+                    bedwars.SprintController:startSprinting()
                 else
-                    bedwars["sprintTable"]:stopSprinting()
+                    bedwars.SprintController.stopSprinting = oldsprint
+                    bedwars.SprintController:stopSprinting()
                     if sprintconnection then sprintconnection:Disconnect() end
                 end
             end)
+
             local reachfunc
             local reach = addModule("Reach", "Gives you 4 studs of extra reach.", function(callback)
                 if callback then
-                    reachfunc = cam.Viewmodel.Humanoid.Animator.AnimationPlayed:connect(function(anim)
-                        if anim.Animation.AnimationId == "rbxassetid://8089691925" then
-                            local equipped = getEquipped()
-                            if equipped["Type"] == "sword" then
-                                local rayparams = RaycastParams.new()
-                                rayparams.FilterDescendantsInstances = {lplr.Character}
-                                rayparams.FilterType = Enum.RaycastFilterType.Blacklist
-                                local ray = workspace:Raycast(lplr:GetMouse().UnitRay.Origin, lplr:GetMouse().UnitRay.Direction * 17.99, rayparams)
-                                local tool = equipped["Object"]
-                                local swordmeta = bedwars["ItemTable"][tool.Name]
-                                if ray and ray.Instance and (workspace:GetServerTimeNow() - bedwars["SwordController"].lastAttack) >= swordmeta.sword.attackSpeed then
-                                    local entity = bedwars["getEntityTable"]:getEntity(ray.Instance)
-                                    if entity and bedwars["SwordController"]:canSee(entity) then
-                                        local selfrootpos = lplr.Character.PrimaryPart.Position
-                                        local selfcheck = localserverpos or selfrootpos
-                                        local realplr = players:GetPlayerFromCharacter(entity:getInstance())
-                                        local plr = {Character = entity:getInstance()}
-                                        local root = plr.Character.PrimaryPart
-                                        if (selfcheck - (otherserverpos[realplr] or root.Position)).Magnitude > 18 then 
-                                            return nil
-                                        end
-                                        if (selfrootpos - root.Position).magnitude > 14.4 then 
-                                            if modulesenabled["Reach/Vertical Check"] and math.abs(selfrootpos.Y - root.Position.Y) > 9 then 
-                                                pos = Vector3.zero
-                                            elseif modulesenabled["Reach/Only reach while moving"] and lplr.Character.Humanoid.MoveDirection == Vector3.zero then 
-                                                pos = Vector3.zero
-                                            end
-                                        end
-                                        bedwars["SwordController"].lastAttack = workspace:GetServerTimeNow()
-                                        Client:Get(bedwars["AttackRemote"]):SendToServer({
-                                            ["weapon"] = tool,
-                                            ["chargedAttack"] = {chargeRatio = swordmeta.sword and swordmeta.sword.chargedAttack and swordmeta.sword.chargedAttack.maxChargeTimeSec or 0},
-                                            ["entityInstance"] = plr.Character,
-                                            ["validate"] = {
-                                                ["raycast"] = {
-                                                    ["cameraPosition"] = hashvec(cam.CFrame.p), 
-                                                    ["cursorDirection"] = hashvec(Ray.new(cam.CFrame.p, root.Position).Unit.Direction)
-                                                },
-                                                ["targetPosition"] = hashvec(root.Position),
-                                                ["selfPosition"] = hashvec(selfrootpos + (CFrame.lookAt(selfrootpos, root.Position).lookVector * 4))
-                                            }
-                                        })
+                    reachfunc = attackevent.Event:connect(function(anim)
+                        local equipped = getEquipped()
+                        if equipped["Type"] == "sword" then
+                            local rayparams = RaycastParams.new()
+                            rayparams.FilterDescendantsInstances = {lplr.Character}
+                            rayparams.FilterType = Enum.RaycastFilterType.Blacklist
+                            local ray = workspace:Raycast(lplr:GetMouse().UnitRay.Origin, lplr:GetMouse().UnitRay.Direction * 17.99, rayparams)
+                            local tool = equipped["Object"]
+                            local swordmeta = bedwars["ItemTable"][tool.Name]
+                            if ray and ray.Instance and (workspace:GetServerTimeNow() - bedwars["SwordController"].lastAttack) >= swordmeta.sword.attackSpeed then
+                                local entity = bedwars["getEntityTable"]:getEntity(ray.Instance)
+                                if entity and bedwars["SwordController"]:canSee(entity) then
+                                    local selfrootpos = lplr.Character.PrimaryPart.Position
+                                    local selfcheck = localserverpos or selfrootpos
+                                    local realplr = players:GetPlayerFromCharacter(entity:getInstance())
+                                    local plr = {Character = entity:getInstance()}
+                                    local root = plr.Character.PrimaryPart
+                                    if (selfcheck - (otherserverpos[realplr] or root.Position)).Magnitude > 18 then 
+                                        return nil
                                     end
+                                    if (selfrootpos - root.Position).magnitude > 14.4 then 
+                                        if modulesenabled["Reach/Vertical Check"] and math.abs(selfrootpos.Y - root.Position.Y) > 9 then 
+                                            pos = Vector3.zero
+                                        elseif modulesenabled["Reach/Only reach while moving"] and lplr.Character.Humanoid.MoveDirection == Vector3.zero then 
+                                            pos = Vector3.zero
+                                        end
+                                    end
+                                    bedwars["SwordController"].lastAttack = workspace:GetServerTimeNow()
+                                    Client:Get(bedwars["AttackRemote"]):SendToServer({
+                                        ["weapon"] = tool,
+                                        ["chargedAttack"] = {chargeRatio = swordmeta.sword and swordmeta.sword.chargedAttack and swordmeta.sword.chargedAttack.maxChargeTimeSec or 0},
+                                        ["entityInstance"] = plr.Character,
+                                        ["validate"] = {
+                                            ["raycast"] = {
+                                                ["cameraPosition"] = hashvec(cam.CFrame.p), 
+                                                ["cursorDirection"] = hashvec(Ray.new(cam.CFrame.p, root.Position).Unit.Direction)
+                                            },
+                                            ["targetPosition"] = hashvec(root.Position),
+                                            ["selfPosition"] = hashvec(selfrootpos + (CFrame.lookAt(selfrootpos, root.Position).lookVector * 4))
+                                        }
+                                    })
                                 end
                             end
                         end
@@ -776,47 +788,45 @@ if suc and type(web) ~= "boolean" then
                 if callback then
                     local killaurafov = findOption("Killaura", "Max angle")
                     local killaurareach = findOption("Killaura", "Attack range")
-                    killaurafunc = cam.Viewmodel.Humanoid.Animator.AnimationPlayed:connect(function(anim)
-                        if anim.Animation.AnimationId == "rbxassetid://8089691925" then
-                            local equipped = getEquipped()
-                            if equipped["Type"] == "sword" then
-                                local plr = getplayersnear(math.max(killaurareach.state + 0.4, 18), check)
-                                local tool = equipped["Object"]
-                                local swordmeta = bedwars["ItemTable"][tool.Name]
-                                if plr and (workspace:GetServerTimeNow() - bedwars["SwordController"].lastAttack) >= swordmeta.sword.attackSpeed then
-                                    local entity = bedwars["getEntityTable"]:getEntity(plr.Character)
-                                    if entity and bedwars["SwordController"]:canSee(entity) then
-                                        local root = plr.Character.PrimaryPart
-                                        local selfrootpos = lplr.Character.PrimaryPart.Position
-                                        local selfcheck = localserverpos or selfrootpos
-                                        local pos = CFrame.lookAt(selfrootpos, root.Position).lookVector * 4
-                                        if (selfrootpos - root.Position).magnitude > 14.4 then 
-                                            if modulesenabled["Killaura/Vertical Check"] and math.abs(selfrootpos.Y - root.Position.Y) > 9 then 
-                                                pos = Vector3.zero
-                                            elseif modulesenabled["Killaura/Only reach while moving"] and lplr.Character.Humanoid.MoveDirection == Vector3.zero then 
-                                                pos = Vector3.zero
-                                            end
+                    killaurafunc = attackevent.Event:connect(function(anim)
+                        local equipped = getEquipped()
+                        if equipped["Type"] == "sword" then
+                            local plr = getplayersnear(math.max(killaurareach.state + 0.4, 18), check)
+                            local tool = equipped["Object"]
+                            local swordmeta = bedwars["ItemTable"][tool.Name]
+                            if plr and (workspace:GetServerTimeNow() - bedwars["SwordController"].lastAttack) >= swordmeta.sword.attackSpeed then
+                                local entity = bedwars["getEntityTable"]:getEntity(plr.Character)
+                                if entity and bedwars["SwordController"]:canSee(entity) then
+                                    local root = plr.Character.PrimaryPart
+                                    local selfrootpos = lplr.Character.PrimaryPart.Position
+                                    local selfcheck = localserverpos or selfrootpos
+                                    local pos = CFrame.lookAt(selfrootpos, root.Position).lookVector * 4
+                                    if (selfrootpos - root.Position).magnitude > 14.4 then 
+                                        if modulesenabled["Killaura/Vertical Check"] and math.abs(selfrootpos.Y - root.Position.Y) > 9 then 
+                                            pos = Vector3.zero
+                                        elseif modulesenabled["Killaura/Only reach while moving"] and lplr.Character.Humanoid.MoveDirection == Vector3.zero then 
+                                            pos = Vector3.zero
                                         end
-                                        if (selfcheck - (otherserverpos[plr] or root.Position)).Magnitude > math.max(14.4 + pos.Magnitude, 18) then 
-                                            return nil
-                                        end
-                                        local angle = math.acos(lplr.Character.PrimaryPart.CFrame.lookVector:Dot((root.Position - selfrootpos).unit))
-                                        if angle >= (math.rad(killaurafov.state) / 2) then return end
-                                        bedwars["SwordController"].lastAttack = workspace:GetServerTimeNow()
-                                        Client:Get(bedwars["AttackRemote"]):SendToServer({
-                                            ["weapon"] = tool,
-                                            ["entityInstance"] = plr.Character,
-                                            ["chargedAttack"] = {chargeRatio = swordmeta.sword and swordmeta.sword.chargedAttack and swordmeta.sword.chargedAttack.maxChargeTimeSec or 0},
-                                            ["validate"] = {
-                                                ["raycast"] = {
-                                                    ["cameraPosition"] = hashvec(cam.CFrame.p), 
-                                                    ["cursorDirection"] = hashvec(Ray.new(cam.CFrame.p, root.Position).Unit.Direction)
-                                                },
-                                                ["targetPosition"] = hashvec(root.Position),
-                                                ["selfPosition"] = hashvec(selfrootpos + pos)
-                                            }
-                                        })
                                     end
+                                    if (selfcheck - (otherserverpos[plr] or root.Position)).Magnitude > math.max(14.4 + pos.Magnitude, 18) then 
+                                        return nil
+                                    end
+                                    local angle = math.acos(lplr.Character.PrimaryPart.CFrame.lookVector:Dot((root.Position - selfrootpos).unit))
+                                    if angle >= (math.rad(killaurafov.state) / 2) then return end
+                                    bedwars["SwordController"].lastAttack = workspace:GetServerTimeNow()
+                                    Client:Get(bedwars["AttackRemote"]):SendToServer({
+                                        ["weapon"] = tool,
+                                        ["entityInstance"] = plr.Character,
+                                        ["chargedAttack"] = {chargeRatio = swordmeta.sword and swordmeta.sword.chargedAttack and swordmeta.sword.chargedAttack.maxChargeTimeSec or 0},
+                                        ["validate"] = {
+                                            ["raycast"] = {
+                                                ["cameraPosition"] = hashvec(cam.CFrame.p), 
+                                                ["cursorDirection"] = hashvec(Ray.new(cam.CFrame.p, root.Position).Unit.Direction)
+                                            },
+                                            ["targetPosition"] = hashvec(root.Position),
+                                            ["selfPosition"] = hashvec(selfrootpos + pos)
+                                        }
+                                    })
                                 end
                             end
                         end
@@ -832,31 +842,25 @@ if suc and type(web) ~= "boolean" then
             killaura.addToggle("Only reach while moving", function() end)
             killaura.addToggle("Vertical Check", function() end)
 
-            local oldhori = 10000
-            local oldvert = 300
+            local oldvelo
             local velocity = addModule("Velocity", "Reduces knockback.", function(callback)
                 if callback then
-                    oldhori = game:GetService("ReplicatedStorage").TS.damage["knockback-util"]:GetAttribute("ConstantManager_kbDirectionStrength")
-                    oldvert = game:GetService("ReplicatedStorage").TS.damage["knockback-util"]:GetAttribute("ConstantManager_kbUpwardStrength")
+                    oldvelo = bedwars.KnockbackUtil.applyKnockback
                     local velohori = findOption("Velocity", "Horizontal")
                     local velovert = findOption("Velocity", "Vertical")
-                    game:GetService("ReplicatedStorage").TS.damage["knockback-util"]:SetAttribute("ConstantManager_kbDirectionStrength", oldhori * (velohori.state / 100))
-                    game:GetService("ReplicatedStorage").TS.damage["knockback-util"]:SetAttribute("ConstantManager_kbUpwardStrength", oldvert * (velovert.state / 100))
+                    bedwars.KnockbackUtil.applyKnockback = function(root, mass, dir, knockback, ...)
+                        knockback = knockback or {}
+                        if velohori.state == 0 and velovert.state == 0 then return end
+                        knockback.horizontal = (knockback.horizontal or 1) * (velohori.state / 100)
+                        knockback.vertical = (knockback.vertical or 1) * (velovert.state / 100)
+                        return oldvelo(root, mass, dir, knockback, ...)
+                    end
                 else
-                    game:GetService("ReplicatedStorage").TS.damage["knockback-util"]:SetAttribute("ConstantManager_kbDirectionStrength", oldhori)
-                    game:GetService("ReplicatedStorage").TS.damage["knockback-util"]:SetAttribute("ConstantManager_kbUpwardStrength", oldvert)
+                    bedwars.KnockbackUtil.applyKnockback = oldvelo
                 end
             end)
-            velocity.addSlider("Horizontal", 0, 100, 70, function(state) 
-                if modulesenabled["Velocity"] then 
-                    game:GetService("ReplicatedStorage").TS.damage["knockback-util"]:SetAttribute("ConstantManager_kbDirectionStrength", oldhori * (state / 100))
-                end
-            end)
-            velocity.addSlider("Vertical", 0, 100, 100, function(state) 
-                if modulesenabled["Velocity"] then 
-                    game:GetService("ReplicatedStorage").TS.damage["knockback-util"]:SetAttribute("ConstantManager_kbUpwardStrength", oldvert * (state / 100))
-                end
-            end)
+            velocity.addSlider("Horizontal", 0, 100, 70, function(state) end)
+            velocity.addSlider("Vertical", 0, 100, 100, function(state) end)
 
             local function bettermousemove(x, y)
                 mousemoverel(1, 1) mousemoveabs(x, y)
