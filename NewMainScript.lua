@@ -520,7 +520,7 @@ if suc and type(web) ~= "boolean" then
                             local targettable = {}
                             local targetsize = 0
                             local plr = GetNearestHumanoidToPosition(true, 18)
-                            if plr and getEquipped()["Type"] == "sword" and #bedwars["AppController"]:getOpenApps() <= 2 and isNotHoveringOverGui() and bedwars["SwordController"]:canSee({["instance"] = plr.Character, ["player"] = plr, ["getInstance"] = function() return plr.Character end}) and bedwars["KatanaController"].chargingMaid == nil then
+                            if plr and getEquipped()["Type"] == "sword" and #bedwars["AppController"]:getOpenApps() <= 3 and isNotHoveringOverGui() and bedwars["SwordController"]:canSee({["instance"] = plr.Character, ["player"] = plr, ["getInstance"] = function() return plr.Character end}) and bedwars["KatanaController"].chargingMaid == nil then
                                 local pos, vis = cam:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
                                 if vis and isrbxactive() then
                                     local senst = UserSettings():GetService("UserGameSettings").MouseSensitivity * (1 - (aimmulti.state / 100))
@@ -588,7 +588,7 @@ if suc and type(web) ~= "boolean" then
                     task.spawn(function()
                         repeat
                             task.wait()
-                            if isAlive() and autoclickermousedown and #bedwars["AppController"]:getOpenApps() <= 2 and isNotHoveringOverGui() then 
+                            if isAlive() and autoclickermousedown and #bedwars["AppController"]:getOpenApps() <= 3 and isNotHoveringOverGui() then 
                                 if getEquipped()["Type"] == "sword" and bedwars["KatanaController"].chargingMaid == nil then 
                                     task.spawn(function()
                                         bedwars["SwordController"]:swingSwordAtMouse()
