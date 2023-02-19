@@ -286,7 +286,7 @@ if suc and type(web) ~= "boolean" then
                 BowTable = KnitClient.Controllers.ProjectileController,
                 BowConstantsTable = debug.getupvalue(KnitClient.Controllers.ProjectileController.enableBeam, 5),
                 ClientHandlerSyncEvents = require(lplr.PlayerScripts.TS["client-sync-events"]).ClientSyncEvents,
-                ClientStoreHandle = require(game.Players.LocalPlayer.PlayerScripts.TS.ui.store).ClientStore,
+                ClientStoreHandler = require(game.Players.LocalPlayer.PlayerScripts.TS.ui.store).ClientStore,
                 getEntityTable = require(game:GetService("ReplicatedStorage").TS.entity["entity-util"]).EntityUtil,
                 getItemMetadata = require(game:GetService("ReplicatedStorage").TS.item["item-meta"]).getItemMeta,
                 getInventory = function(plr)
@@ -390,7 +390,7 @@ if suc and type(web) ~= "boolean" then
 
             local function switchToAndUseTool(block)
                 local tool = getBestTool(block.Name)
-                if tool and (isAlive() and lplr.Character:FindFirstChild("HandInvItem") and lplr.Character.HandInvItem.state ~= tool["tool"]) then
+                if tool and (isAlive() and lplr.Character:FindFirstChild("HandInvItem") and lplr.Character.HandInvItem.Value ~= tool["tool"]) then
                     bedwars["ClientStoreHandler"]:dispatch({
                         type = "InventorySelectHotbarSlot", 
                         slot = getItemFromHotbar(tool["itemType"])
@@ -520,7 +520,7 @@ if suc and type(web) ~= "boolean" then
                             local targettable = {}
                             local targetsize = 0
                             local plr = GetNearestHumanoidToPosition(true, 18)
-                            if plr and getEquipped()["Type"] == "sword" and #bedwars["AppController"]:getOpenApps() <= 2 and isNotHoveringOverGui() and bedwars["SwordController"]:canSee({["instance"] = plr.Character, ["player"] = plr, ["getInstance"] = function() return plr.Character end}) and bedwars["KatanaController"].chargingMaid == nil then
+                            if plr and getEquipped()["Type"] == "sword" and #bedwars["AppController"]:getOpenApps() <= 3 and isNotHoveringOverGui() and bedwars["SwordController"]:canSee({["instance"] = plr.Character, ["player"] = plr, ["getInstance"] = function() return plr.Character end}) and bedwars["KatanaController"].chargingMaid == nil then
                                 local pos, vis = cam:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
                                 if vis and isrbxactive() then
                                     local senst = UserSettings():GetService("UserGameSettings").MouseSensitivity * (1 - (aimmulti.state / 100))
@@ -588,7 +588,7 @@ if suc and type(web) ~= "boolean" then
                     task.spawn(function()
                         repeat
                             task.wait()
-                            if isAlive() and autoclickermousedown and #bedwars["AppController"]:getOpenApps() <= 2 and isNotHoveringOverGui() then 
+                            if isAlive() and autoclickermousedown and #bedwars["AppController"]:getOpenApps() <= 3 and isNotHoveringOverGui() then 
                                 if getEquipped()["Type"] == "sword" and bedwars["KatanaController"].chargingMaid == nil then 
                                     task.spawn(function()
                                         bedwars["SwordController"]:swingSwordAtMouse()
