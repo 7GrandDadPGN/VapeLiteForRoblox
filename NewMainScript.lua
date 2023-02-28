@@ -473,22 +473,36 @@ if suc and type(web) ~= "boolean" then
 
             task.spawn(function()
                 local postable = {}
-                local postable2 = {}
                 repeat
                     task.wait()
                     if isAlive() then
-                        table.insert(postable, lplr.Character.PrimaryPart.Position)
+                        table.insert(postable, {Time = workspace:GetServerTimeNow(), Position = lplr.Character.PrimaryPart.Position})
                         if #postable > 60 then 
                             table.remove(postable, 1)
                         end
-                        localserverpos = postable[46] or lplr.Character.PrimaryPart.Position
+                        local closestmag = 9e9
+                        local closestpos = lplr.Character.PrimaryPart.Position
+                        for i, v in pairs(postable) do 
+                            local mag = math.abs(workspace:GetServerTimeNow() - (v.Time + 0.182))
+                            if mag < closestmag then
+                                closestmag = mag
+                                closestpos = v.Position
+                            end
+                        end
+                        localserverpos = closestpos
                     end
+                until uninjectflag
+            end)
+            task.spawn(function()
+                local postable2 = {}
+                repeat
+                    task.wait(0.016)
                     for i, v in pairs(players:GetPlayers()) do
                         if v.Character and v.Character.PrimaryPart then
                             if postable2[v] == nil then 
                                 postable2[v] = v.Character.PrimaryPart.Position
                             end
-                            otherserverpos[v] = v.Character.PrimaryPart.Position + ((v.Character.PrimaryPart.Position - postable2[v]) * 3)
+                            otherserverpos[v] = v.Character.PrimaryPart.Position + ((v.Character.PrimaryPart.Position - postable2[v]) * 2.5)
                             postable2[v] = v.Character.PrimaryPart.Position
                         end
                     end
@@ -791,7 +805,7 @@ if suc and type(web) ~= "boolean" then
                     killaurafunc = attackevent.Event:connect(function(anim)
                         local equipped = getEquipped()
                         if equipped["Type"] == "sword" then
-                            local plr = getplayersnear(math.max(killaurareach.state + 0.4, 18), check)
+                            local plr = getplayersnear(math.min(killaurareach.state + 0.4, 17.99), check)
                             local tool = equipped["Object"]
                             local swordmeta = bedwars["ItemTable"][tool.Name]
                             if plr and (workspace:GetServerTimeNow() - bedwars["SwordController"].lastAttack) >= swordmeta.sword.attackSpeed then
@@ -808,7 +822,7 @@ if suc and type(web) ~= "boolean" then
                                             pos = Vector3.zero
                                         end
                                     end
-                                    if (selfcheck - (otherserverpos[plr] or root.Position)).Magnitude > math.max(14.4 + pos.Magnitude, 18) then 
+                                    if (selfcheck - (otherserverpos[plr] or root.Position)).Magnitude >= 18 then 
                                         return nil
                                     end
                                     local angle = math.acos(lplr.Character.PrimaryPart.CFrame.lookVector:Dot((root.Position - selfrootpos).unit))
