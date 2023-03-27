@@ -260,7 +260,9 @@ if suc and type(web) ~= "boolean" then
                         task.wait(0.5)
                         bedwars.SprintController:stopSprinting()
                     end)
-                    bedwars.SprintController:startSprinting()
+                    task.spawn(function()
+                        bedwars.SprintController:startSprinting()
+                    end)
                 else
                     bedwars.SprintController.stopSprinting = oldsprint
                     bedwars.SprintController:stopSprinting()
@@ -309,7 +311,7 @@ if suc and type(web) ~= "boolean" then
                 ViewmodelController = KnitClient.Controllers.ViewmodelController,
             }
 
-            local function hashvec(vec)
+            local function attackValue(vec)
                 return {
                     value = vec
                 }
@@ -318,7 +320,6 @@ if suc and type(web) ~= "boolean" then
             bedwars.AttackRemote = getremote(debug.getconstants(getmetatable(KnitClient.Controllers.SwordController).attackEntity))
 
             local localserverpos
-            local otherserverpos = {}
 
             local function getEquipped()
                 local typetext = ""
@@ -463,7 +464,7 @@ if suc and type(web) ~= "boolean" then
             local function getplayersnear(range)
                 if isAlive() then
                     for i,v in pairs(players:GetPlayers()) do 
-                        if v ~= lplr and v:GetAttribute("Team") ~= lplr:GetAttribute("Team") and isAlive(v) and (lplr.Character.HumanoidRootPart.Position - (otherserverpos[v] or v.Character.HumanoidRootPart.Position)).magnitude <= range then 
+                        if v ~= lplr and v:GetAttribute("Team") ~= lplr:GetAttribute("Team") and isAlive(v) and (lplr.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).Magnitude <= range then 
                             return v
                         end
                     end
@@ -476,35 +477,20 @@ if suc and type(web) ~= "boolean" then
                 repeat
                     task.wait()
                     if isAlive() then
-                        table.insert(postable, {Time = workspace:GetServerTimeNow(), Position = lplr.Character.PrimaryPart.Position})
-                        if #postable > 60 then 
+                        table.insert(postable, {Time = tick(), Position = lplr.Character.PrimaryPart.Position})
+                        if #postable > 100 then 
                             table.remove(postable, 1)
                         end
                         local closestmag = 9e9
                         local closestpos = lplr.Character.PrimaryPart.Position
                         for i, v in pairs(postable) do 
-                            local mag = math.abs(workspace:GetServerTimeNow() - (v.Time + 0.182))
+                            local mag = math.abs(tick() - (v.Time + 0.1))
                             if mag < closestmag then
                                 closestmag = mag
-                                closestpos = v.Position
+                                closestpos = (postable[i - 1] or v).Position:lerp(v.Position, 0.85)
                             end
                         end
                         localserverpos = closestpos
-                    end
-                until uninjectflag
-            end)
-            task.spawn(function()
-                local postable2 = {}
-                repeat
-                    task.wait(0.016)
-                    for i, v in pairs(players:GetPlayers()) do
-                        if v.Character and v.Character.PrimaryPart then
-                            if postable2[v] == nil then 
-                                postable2[v] = v.Character.PrimaryPart.Position
-                            end
-                            otherserverpos[v] = v.Character.PrimaryPart.Position + ((v.Character.PrimaryPart.Position - postable2[v]) * 2.5)
-                            postable2[v] = v.Character.PrimaryPart.Position
-                        end
                     end
                 until uninjectflag
             end)
@@ -735,7 +721,9 @@ if suc and type(web) ~= "boolean" then
                         task.wait(0.5)
                         bedwars.SprintController:stopSprinting()
                     end)
-                    bedwars.SprintController:startSprinting()
+                    task.spawn(function()
+                        bedwars.SprintController:startSprinting()
+                    end)
                 else
                     bedwars.SprintController.stopSprinting = oldsprint
                     bedwars.SprintController:stopSprinting()
@@ -748,22 +736,22 @@ if suc and type(web) ~= "boolean" then
                 if callback then
                     reachfunc = attackevent.Event:connect(function(anim)
                         local equipped = getEquipped()
-                        if equipped["Type"] == "sword" then
+                        if equipped.Type == "sword" then
                             local rayparams = RaycastParams.new()
                             rayparams.FilterDescendantsInstances = {lplr.Character}
                             rayparams.FilterType = Enum.RaycastFilterType.Blacklist
-                            local ray = workspace:Raycast(lplr:GetMouse().UnitRay.Origin, lplr:GetMouse().UnitRay.Direction * 17.99, rayparams)
-                            local tool = equipped["Object"]
-                            local swordmeta = bedwars["ItemTable"][tool.Name]
-                            if ray and ray.Instance and (workspace:GetServerTimeNow() - bedwars["SwordController"].lastAttack) >= swordmeta.sword.attackSpeed then
-                                local entity = bedwars["getEntityTable"]:getEntity(ray.Instance)
-                                if entity and bedwars["SwordController"]:canSee(entity) then
+                            local ray = workspace:Raycast(lplr:GetMouse().UnitRay.Origin, lplr:GetMouse().UnitRay.Direction * 200, rayparams)
+                            local tool = equipped.Object
+                            local swordmeta = bedwars.ItemTable[tool.Name]
+                            if ray and ray.Instance and (workspace:GetServerTimeNow() - bedwars.SwordController.lastAttack) >= swordmeta.sword.attackSpeed then
+                                local entity = bedwars.getEntityTable:getEntity(ray.Instance)
+                                if entity and bedwars.SwordController:canSee(entity) then
                                     local selfrootpos = lplr.Character.PrimaryPart.Position
                                     local selfcheck = localserverpos or selfrootpos
                                     local realplr = players:GetPlayerFromCharacter(entity:getInstance())
                                     local plr = {Character = entity:getInstance()}
                                     local root = plr.Character.PrimaryPart
-                                    if (selfcheck - (otherserverpos[realplr] or root.Position)).Magnitude > 18 then 
+                                    if (selfcheck - root.Position).Magnitude > 18 then 
                                         return nil
                                     end
                                     if (selfrootpos - root.Position).magnitude > 14.4 then 
@@ -773,18 +761,18 @@ if suc and type(web) ~= "boolean" then
                                             pos = Vector3.zero
                                         end
                                     end
-                                    bedwars["SwordController"].lastAttack = workspace:GetServerTimeNow()
-                                    Client:Get(bedwars["AttackRemote"]):SendToServer({
-                                        ["weapon"] = tool,
-                                        ["chargedAttack"] = {chargeRatio = swordmeta.sword and swordmeta.sword.chargedAttack and swordmeta.sword.chargedAttack.maxChargeTimeSec or 0},
-                                        ["entityInstance"] = plr.Character,
-                                        ["validate"] = {
-                                            ["raycast"] = {
-                                                ["cameraPosition"] = hashvec(cam.CFrame.p), 
-                                                ["cursorDirection"] = hashvec(Ray.new(cam.CFrame.p, root.Position).Unit.Direction)
+                                    bedwars.SwordController.lastAttack = workspace:GetServerTimeNow()
+                                    Client:Get(bedwars.AttackRemote):SendToServer({
+                                        weapon = tool,
+                                        chargedAttack = {chargeRatio = swordmeta.sword and swordmeta.sword.chargedAttack and swordmeta.sword.chargedAttack.maxChargeTimeSec or 0},
+                                        entityInstance = plr.Character,
+                                        validate = {
+                                            raycast = {
+                                                cameraPosition = attackValue(cam.CFrame.p), 
+                                                cursorDirection = attackValue(Ray.new(cam.CFrame.p, root.Position).Unit.Direction)
                                             },
-                                            ["targetPosition"] = hashvec(root.Position),
-                                            ["selfPosition"] = hashvec(selfrootpos + (CFrame.lookAt(selfrootpos, root.Position).lookVector * 4))
+                                            targetPosition = attackValue(root.Position),
+                                            selfPosition = attackValue(selfrootpos + (CFrame.lookAt(selfrootpos, root.Position).lookVector * 4))
                                         }
                                     })
                                 end
@@ -797,6 +785,17 @@ if suc and type(web) ~= "boolean" then
             end)
             reach.addToggle("Only reach while moving", function() end)
             reach.addToggle("Vertical Check", function() end)
+
+            addModule("HitFix", "Fixes terrible bedwars code for hitreg", function(callback)
+                if callback then
+                    debug.setconstant(bedwars.SwordController.swingSwordAtMouse, 27, "raycast")
+                    debug.setupvalue(bedwars.SwordController.swingSwordAtMouse, 4, bedwars.QueryUtil)
+                else
+                    debug.setconstant(bedwars.SwordController.swingSwordAtMouse, 27, "Raycast")
+                    debug.setupvalue(bedwars.SwordController.swingSwordAtMouse, 4, workspace)
+                end
+            end)
+
             local killaurafunc
             local killaura = addModule("Killaura", "Hits no matter where you aim", function(callback)
                 if callback then
@@ -804,13 +803,13 @@ if suc and type(web) ~= "boolean" then
                     local killaurareach = findOption("Killaura", "Attack range")
                     killaurafunc = attackevent.Event:connect(function(anim)
                         local equipped = getEquipped()
-                        if equipped["Type"] == "sword" then
+                        if equipped.Type == "sword" then
                             local plr = getplayersnear(math.min(killaurareach.state + 0.4, 17.99), check)
-                            local tool = equipped["Object"]
-                            local swordmeta = bedwars["ItemTable"][tool.Name]
-                            if plr and (workspace:GetServerTimeNow() - bedwars["SwordController"].lastAttack) >= swordmeta.sword.attackSpeed then
-                                local entity = bedwars["getEntityTable"]:getEntity(plr.Character)
-                                if entity and bedwars["SwordController"]:canSee(entity) then
+                            local tool = equipped.Object
+                            local swordmeta = bedwars.ItemTable[tool.Name]
+                            if plr and (workspace:GetServerTimeNow() - bedwars.SwordController.lastAttack) >= swordmeta.sword.attackSpeed then
+                                local entity = bedwars.getEntityTable:getEntity(plr.Character)
+                                if entity and bedwars.SwordController:canSee(entity) then
                                     local root = plr.Character.PrimaryPart
                                     local selfrootpos = lplr.Character.PrimaryPart.Position
                                     local selfcheck = localserverpos or selfrootpos
@@ -822,23 +821,23 @@ if suc and type(web) ~= "boolean" then
                                             pos = Vector3.zero
                                         end
                                     end
-                                    if (selfcheck - (otherserverpos[plr] or root.Position)).Magnitude >= 18 then 
+                                    if (selfcheck - root.Position).Magnitude >= 18 then 
                                         return nil
                                     end
                                     local angle = math.acos(lplr.Character.PrimaryPart.CFrame.lookVector:Dot((root.Position - selfrootpos).unit))
                                     if angle >= (math.rad(killaurafov.state) / 2) then return end
-                                    bedwars["SwordController"].lastAttack = workspace:GetServerTimeNow()
-                                    Client:Get(bedwars["AttackRemote"]):SendToServer({
-                                        ["weapon"] = tool,
-                                        ["entityInstance"] = plr.Character,
-                                        ["chargedAttack"] = {chargeRatio = swordmeta.sword and swordmeta.sword.chargedAttack and swordmeta.sword.chargedAttack.maxChargeTimeSec or 0},
-                                        ["validate"] = {
-                                            ["raycast"] = {
-                                                ["cameraPosition"] = hashvec(cam.CFrame.p), 
-                                                ["cursorDirection"] = hashvec(Ray.new(cam.CFrame.p, root.Position).Unit.Direction)
+                                    bedwars.SwordController.lastAttack = workspace:GetServerTimeNow()
+                                    Client:Get(bedwars.AttackRemote):SendToServer({
+                                        weapon = tool,
+                                        entityInstance = plr.Character,
+                                        chargedAttack = {chargeRatio = swordmeta.sword and swordmeta.sword.chargedAttack and swordmeta.sword.chargedAttack.maxChargeTimeSec or 0},
+                                        validate = {
+                                            raycast = {
+                                                cameraPosition = attackValue(cam.CFrame.p), 
+                                                cursorDirection = attackValue(Ray.new(cam.CFrame.p, root.Position).Unit.Direction)
                                             },
-                                            ["targetPosition"] = hashvec(root.Position),
-                                            ["selfPosition"] = hashvec(selfrootpos + pos)
+                                            targetPosition = attackValue(root.Position),
+                                            selfPosition = attackValue(selfrootpos + pos)
                                         }
                                     })
                                 end
@@ -846,9 +845,7 @@ if suc and type(web) ~= "boolean" then
                         end
                     end)
                 else
-                    if killaurafunc then 
-                        killaurafunc:Disconnect()
-                    end
+                    if killaurafunc then killaurafunc:Disconnect() end
                 end
             end)
             killaura.addSlider("Attack range", 1, 18, 18, function() end)
@@ -915,7 +912,7 @@ if suc and type(web) ~= "boolean" then
                                     end
                                 end)
                             end
-                        until (not modulesenabled["ChestStealer"])
+                        until (not modulesenabled.ChestStealer)
                     end)
                 end
             end)
@@ -1569,7 +1566,7 @@ if suc and type(web) ~= "boolean" then
         loaded = true
     end
     repeat task.wait() until loaded
-    sendrequest({
+    sendrequest({   
         msg = "connectrequest",
         modules = modules
     })
