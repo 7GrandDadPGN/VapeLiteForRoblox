@@ -283,6 +283,7 @@ if suc and type(web) ~= "boolean" then
             local bedwars = {   
                 AppController = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["game-core"].out.client.controllers["app-controller"]).AppController,
                 BlockController = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["block-engine"].out).BlockEngine,
+                BlockCpsController = KnitClient.Controllers.BlockCpsController,
                 BlockPlacementController = KnitClient.Controllers.BlockPlacementController,
                 BlockEngine = require(lplr.PlayerScripts.TS.lib["block-engine"]["client-block-engine"]).ClientBlockEngine,
                 BowTable = KnitClient.Controllers.ProjectileController,
@@ -575,40 +576,49 @@ if suc and type(web) ~= "boolean" then
             autoballoon.addSlider("Delay", 1, 100, 60, function() end)
             local autoclicker = addModule("AutoClicker", "Automatically clicks for you.", function(callback)
                 if callback then
+                    local cpsmodule = findOption("AutoClicker", "CPS")
                     autoclickerconnection1 = uis.InputBegan:connect(function(input, gameProcessed)
                         if gameProcessed and input.UserInputType == Enum.UserInputType.MouseButton1 then
                             autoclickermousedown = true
+                            local firstClick = tick() + 0.1
+                            task.spawn(function()
+                                repeat
+                                    task.wait()
+                                    if not autoclickermousedown then break end
+                                    if not isNotHoveringOverGui() then continue end
+                                    if not isAlive() then continue end
+                                    if #bedwars.AppController:getOpenApps() > 3 then continue end
+                                    if getEquipped().Type == "sword" and bedwars.KatanaController.chargingMaid == nil then 
+                                        task.spawn(function()
+                                            if firstClick <= tick() then
+                                                bedwars.SwordController:swingSwordAtMouse()
+                                            else
+                                                firstClick = tick()
+                                            end
+                                        end)
+                                        task.wait(math.max(1 / makerandom(math.clamp(cpsmodule.state - 2, 1, 20), cpsmodule.state), (modulesenabled["AutoClicker/Timed"] and 0.38 or 0.18)))
+                                    end
+                                    if getEquipped().Type == "block" and modulesenabled["AutoClicker/Place Block"] and bedwars.BlockPlacementController.blockPlacer and firstClick <= tick() then 
+                                        if (workspace:GetServerTimeNow() - bedwars.BlockCpsController.lastPlaceTimestamp) > ((1 / 12) * 0.5) then
+                                            local mouseinfo = bedwars.BlockPlacementController.blockPlacer.clientManager:getBlockSelector():getMouseInfo(0)
+                                            if mouseinfo then
+                                                task.spawn(function()
+                                                    if mouseinfo.placementPosition == mouseinfo.placementPosition then
+                                                        bedwars.BlockPlacementController.blockPlacer:placeBlock(mouseinfo.placementPosition)
+                                                    end
+                                                end)
+                                            end
+                                            task.wait(1 / makerandom(math.clamp(cpsmodule.state - 2, 1, 20), cpsmodule.state))
+                                        end
+                                    end
+                                until not modulesenabled.AutoClicker or not autoclickermousedown
+                            end)
                         end
                     end)
                     autoclickerconnection2 = uis.InputEnded:connect(function(input)
                         if input.UserInputType == Enum.UserInputType.MouseButton1 then
                             autoclickermousedown = false
                         end
-                    end)
-                    local cpsmodule = findOption("AutoClicker", "CPS")
-                    task.spawn(function()
-                        repeat
-                            task.wait()
-                            if isAlive() and autoclickermousedown and #bedwars["AppController"]:getOpenApps() <= 3 and isNotHoveringOverGui() then 
-                                if getEquipped()["Type"] == "sword" and bedwars["KatanaController"].chargingMaid == nil then 
-                                    task.spawn(function()
-                                        bedwars["SwordController"]:swingSwordAtMouse()
-                                    end)
-                                    task.wait(math.max(1 / makerandom(math.clamp(cpsmodule.state - 2, 1, 20), cpsmodule.state), 0.18))
-                                end
-                                if getEquipped()["Type"] == "block" and modulesenabled["AutoClicker/Place Block"] and bedwars["BlockPlacementController"].blockPlacer then 
-                                    local mouseinfo = bedwars["BlockPlacementController"].blockPlacer.clientManager:getBlockSelector():getMouseInfo(0)
-                                    if mouseinfo then
-                                        task.spawn(function()
-                                            if bedwars["BlockPlacementController"].blockPlacer then
-                                                bedwars["BlockPlacementController"].blockPlacer:placeBlock(mouseinfo.placementPosition)
-                                            end
-                                        end)
-                                    end
-                                    task.wait(math.max(1 / makerandom(math.clamp(cpsmodule.state - 2, 1, 20), cpsmodule.state), 0.084))
-                                end
-                            end
-                        until modulesenabled["AutoClicker"] == false
                     end)
                 else
                     if autoclickerconnection1 then
@@ -621,6 +631,7 @@ if suc and type(web) ~= "boolean" then
             end)
             autoclicker.addSlider("CPS", 1, 20, 10, function() end)
             autoclicker.addToggle("Place Block", function(callback) end)
+            autoclicker.addToggle("Timed", function(callback) end)
             local autotoolconnection
             local autotool = addModule("AutoTool", "Switches tool to highlighted block", function(callback)
                 if callback then
