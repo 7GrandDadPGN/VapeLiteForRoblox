@@ -304,6 +304,7 @@ if suc and type(web) ~= "boolean" then
                 ItemTable = debug.getupvalue(require(game:GetService("ReplicatedStorage").TS.item["item-meta"]).getItemMeta, 1),
                 PlayerUtil = require(game:GetService("ReplicatedStorage").TS.player["player-util"]).GamePlayerUtil,
                 ProjectileMeta = require(game:GetService("ReplicatedStorage").TS.projectile["projectile-meta"]).ProjectileMeta,
+                QueryUtil = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["game-core"].out).GameQueryUtil,
                 SoundManager = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["game-core"].out).SoundManager,
 			    SoundList = require(game:GetService("ReplicatedStorage").TS.sound["game-sound"]).GameSound,
                 SprintController = KnitClient.Controllers.SprintController,
