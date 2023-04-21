@@ -32,8 +32,8 @@ local modulefunctions = {}
 local modulesenabled = {}
 local players = game:GetService("Players")
 local lplr = players.LocalPlayer
-local uis = game:GetService("UserInputService")
-local cam = workspace.CurrentCamera
+local inputService = game:GetService("UserInputService")
+local gameCamera = workspace.CurrentCamera
 local RenderStepTable = {}
 local savesettings = true
 local loaded = false
@@ -386,7 +386,7 @@ if suc and type(web) ~= "boolean" then
                 end
             end)
             updateitem.Event:connect(function(inputObj)
-                if uis:IsMouseButtonPressed(0) then
+                if inputService:IsMouseButtonPressed(0) then
                     game:GetService("ContextActionService"):CallFunction("block-break", Enum.UserInputState.Begin, inputobj)
                 end
             end)
@@ -416,9 +416,9 @@ if suc and type(web) ~= "boolean" then
                 if isAlive() then
                     for i, v in pairs(players:GetPlayers()) do
                         if isPlayerTargetable((player and v or nil), true, true) and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Head") then
-                            local vec, vis = cam:WorldToScreenPoint(v.Character.HumanoidRootPart.Position)
+                            local vec, vis = gameCamera:WorldToScreenPoint(v.Character.HumanoidRootPart.Position)
                             if vis then
-                                local mag = (uis:GetMouseLocation() - Vector2.new(vec.X, vec.Y)).magnitude
+                                local mag = (inputService:GetMouseLocation() - Vector2.new(vec.X, vec.Y)).magnitude
                                 if mag <= closest then
                                     closest = mag
                                     returnedplayer = v
@@ -447,7 +447,7 @@ if suc and type(web) ~= "boolean" then
             end
 
             local function isNotHoveringOverGui()
-                local mousepos = uis:GetMouseLocation() - Vector2.new(0, 36)
+                local mousepos = inputService:GetMouseLocation() - Vector2.new(0, 36)
                 for i,v in pairs(lplr.PlayerGui:GetGuiObjectsAtPosition(mousepos.X, mousepos.Y)) do 
                     if v.Active then
                         return false
@@ -512,7 +512,7 @@ if suc and type(web) ~= "boolean" then
             local aimassist = addModule("AimAssist", "Automatically aims for you.", function(callback)
                 if callback then
                     local function aimpos(vec, multiplier)
-                        local newvec = (vec - uis:GetMouseLocation() - Vector2.new(0, 36)) * tonumber(multiplier)
+                        local newvec = (vec - inputService:GetMouseLocation() - Vector2.new(0, 36)) * tonumber(multiplier)
                         mousemoverel(newvec.X, newvec.Y)
                     end
 
@@ -522,8 +522,8 @@ if suc and type(web) ~= "boolean" then
                             local targettable = {}
                             local targetsize = 0
                             local plr = GetNearestHumanoidToPosition(true, 18)
-                            if plr and getEquipped()["Type"] == "sword" and #bedwars["AppController"]:getOpenApps() <= 3 and isNotHoveringOverGui() and bedwars["SwordController"]:canSee({["instance"] = plr.Character, ["player"] = plr, ["getInstance"] = function() return plr.Character end}) and bedwars["KatanaController"].chargingMaid == nil then
-                                local pos, vis = cam:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
+                            if plr and getEquipped()["Type"] == "sword" and #bedwars["AppController"]:getOpenApps() <= 3 and isNotHoveringOverGui() and bedwars["KatanaController"].chargingMaid == nil then
+                                local pos, vis = gameCamera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
                                 if vis and isrbxactive() then
                                     local senst = UserSettings():GetService("UserGameSettings").MouseSensitivity * (1 - (aimmulti.state / 100))
                                     aimpos(Vector2.new(pos.X, pos.Y), senst)
@@ -577,7 +577,7 @@ if suc and type(web) ~= "boolean" then
             local autoclicker = addModule("AutoClicker", "Automatically clicks for you.", function(callback)
                 if callback then
                     local cpsmodule = findOption("AutoClicker", "CPS")
-                    autoclickerconnection1 = uis.InputBegan:connect(function(input, gameProcessed)
+                    autoclickerconnection1 = inputService.InputBegan:connect(function(input, gameProcessed)
                         if gameProcessed and input.UserInputType == Enum.UserInputType.MouseButton1 then
                             autoclickermousedown = true
                             local firstClick = tick() + 0.1
@@ -596,7 +596,7 @@ if suc and type(web) ~= "boolean" then
                                                 firstClick = tick()
                                             end
                                         end)
-                                        task.wait(math.max(1 / makerandom(math.clamp(cpsmodule.state - 2, 1, 20), cpsmodule.state), (modulesenabled["AutoClicker/Timed"] and 0.38 or 0.18)))
+                                        task.wait(math.max(1 / makerandom(math.clamp(cpsmodule.state - 2, 1, 20), cpsmodule.state), (modulesenabled["AutoClicker/Timed"] and 0.38 or 0)))
                                     end
                                     if getEquipped().Type == "block" and modulesenabled["AutoClicker/Place Block"] and bedwars.BlockPlacementController.blockPlacer and firstClick <= tick() then 
                                         if (workspace:GetServerTimeNow() - bedwars.BlockCpsController.lastPlaceTimestamp) > ((1 / 12) * 0.5) then
@@ -615,7 +615,7 @@ if suc and type(web) ~= "boolean" then
                             end)
                         end
                     end)
-                    autoclickerconnection2 = uis.InputEnded:connect(function(input)
+                    autoclickerconnection2 = inputService.InputEnded:connect(function(input)
                         if input.UserInputType == Enum.UserInputType.MouseButton1 then
                             autoclickermousedown = false
                         end
@@ -672,7 +672,7 @@ if suc and type(web) ~= "boolean" then
                     text.Color = Color3.new(1, 1, 1)
                     text.Outline = true
                     text.Visible = true
-                    text.Position = Vector2.new((cam.ViewportSize.X / 2) - (text.TextBounds.X / 2), 36 - text.TextBounds.Y)
+                    text.Position = Vector2.new((gameCamera.ViewportSize.X / 2) - (text.TextBounds.X / 2), 36 - text.TextBounds.Y)
                     task.wait(10)
                     text:Remove()
                 end)
@@ -763,10 +763,7 @@ if suc and type(web) ~= "boolean" then
                                     local realplr = players:GetPlayerFromCharacter(entity:getInstance())
                                     local plr = {Character = entity:getInstance()}
                                     local root = plr.Character.PrimaryPart
-                                    if (selfcheck - root.Position).Magnitude > 18 then 
-                                        return nil
-                                    end
-                                    if (selfrootpos - root.Position).magnitude > 14.4 then 
+                                    if (selfcheck - root.Position).Magnitude > 14.4 then 
                                         if modulesenabled["Reach/Vertical Check"] and math.abs(selfrootpos.Y - root.Position.Y) > 9 then 
                                             pos = Vector3.zero
                                         elseif modulesenabled["Reach/Only reach while moving"] and lplr.Character.Humanoid.MoveDirection == Vector3.zero then 
@@ -780,8 +777,8 @@ if suc and type(web) ~= "boolean" then
                                         entityInstance = plr.Character,
                                         validate = {
                                             raycast = {
-                                                cameraPosition = attackValue(cam.CFrame.p), 
-                                                cursorDirection = attackValue(Ray.new(cam.CFrame.p, root.Position).Unit.Direction)
+                                                cameraPosition = attackValue(gameCamera.CFrame.p), 
+                                                cursorDirection = attackValue(Ray.new(gameCamera.CFrame.p, root.Position).Unit.Direction)
                                             },
                                             targetPosition = attackValue(root.Position),
                                             selfPosition = attackValue(selfrootpos + (CFrame.lookAt(selfrootpos, root.Position).lookVector * 4))
@@ -826,15 +823,12 @@ if suc and type(web) ~= "boolean" then
                                     local selfrootpos = lplr.Character.PrimaryPart.Position
                                     local selfcheck = localserverpos or selfrootpos
                                     local pos = CFrame.lookAt(selfrootpos, root.Position).lookVector * 4
-                                    if (selfrootpos - root.Position).magnitude > 14.4 then 
+                                    if (selfcheck - root.Position).Magnitude > 14.4 then 
                                         if modulesenabled["Killaura/Vertical Check"] and math.abs(selfrootpos.Y - root.Position.Y) > 9 then 
                                             pos = Vector3.zero
                                         elseif modulesenabled["Killaura/Only reach while moving"] and lplr.Character.Humanoid.MoveDirection == Vector3.zero then 
                                             pos = Vector3.zero
                                         end
-                                    end
-                                    if (selfcheck - root.Position).Magnitude >= 18 then 
-                                        return nil
                                     end
                                     local angle = math.acos(lplr.Character.PrimaryPart.CFrame.lookVector:Dot((root.Position - selfrootpos).unit))
                                     if angle >= (math.rad(killaurafov.state) / 2) then return end
@@ -845,8 +839,8 @@ if suc and type(web) ~= "boolean" then
                                         chargedAttack = {chargeRatio = swordmeta.sword and swordmeta.sword.chargedAttack and swordmeta.sword.chargedAttack.maxChargeTimeSec or 0},
                                         validate = {
                                             raycast = {
-                                                cameraPosition = attackValue(cam.CFrame.p), 
-                                                cursorDirection = attackValue(Ray.new(cam.CFrame.p, root.Position).Unit.Direction)
+                                                cameraPosition = attackValue(gameCamera.CFrame.p), 
+                                                cursorDirection = attackValue(Ray.new(gameCamera.CFrame.p, root.Position).Unit.Direction)
                                             },
                                             targetPosition = attackValue(root.Position),
                                             selfPosition = attackValue(selfrootpos + pos)
@@ -912,7 +906,7 @@ if suc and type(web) ~= "boolean" then
                                                 if v:IsA("Frame") and v:FindFirstChild("2") and v["2"]:FindFirstChild("4") and bedwars["AppController"]:isAppOpen("ChestApp") then
                                                     local newpos = (v["2"].AbsolutePosition + (v["2"].AbsoluteSize / 2)) + Vector2.new(0, 36)
                                                     if isrbxactive and mousemoverel and isrbxactive() then
-                                                        repeat bettermousemove(newpos.X, newpos.Y) task.wait(0.01) until (uis:GetMouseLocation() - newpos).magnitude <= 10 or (not bedwars["AppController"]:isAppOpen("ChestApp"))
+                                                        repeat bettermousemove(newpos.X, newpos.Y) task.wait(0.01) until (inputService:GetMouseLocation() - newpos).magnitude <= 10 or (not bedwars["AppController"]:isAppOpen("ChestApp"))
                                                         if bedwars["AppController"]:isAppOpen("ChestApp") then
                                                             mouse1click()
                                                             task.wait(0.1)
@@ -994,7 +988,7 @@ if suc and type(web) ~= "boolean" then
             local projectileaimbot = addModule("ProjectileAimbot", "Aimbot for Projectiles", function(callback)
                 if callback then 
                     local function aimpos(vec, multiplier)
-                        local newvec = (vec - uis:GetMouseLocation() - Vector2.new(0, 36)) * tonumber(multiplier)
+                        local newvec = (vec - inputService:GetMouseLocation() - Vector2.new(0, 36)) * tonumber(multiplier)
                         mousemoverel(newvec.X, newvec.Y)
                     end
 
@@ -1034,7 +1028,7 @@ if suc and type(web) ~= "boolean" then
                                     end
                                     local calculated = LaunchDirection(offsetshootpos, FindLeadShot(pos, velo, launchvelo, offsetshootpos, Vector3.zero, multigrav), launchvelo, gravity, false)
                                     if calculated then
-                                        local finalpos = cam:WorldToViewportPoint(cam.CFrame.p + (calculated.Unit - Vector3.new(0, 0.05, 0)))
+                                        local finalpos = gameCamera:WorldToViewportPoint(gameCamera.CFrame.p + (calculated.Unit - Vector3.new(0, 0.05, 0)))
                                         local senst = UserSettings():GetService("UserGameSettings").MouseSensitivity 
                                         aimpos(Vector2.new(finalpos.X, finalpos.Y), 0.20800000429153442 / senst)
                                     end
@@ -1097,7 +1091,7 @@ if suc and type(web) ~= "boolean" then
             end
 
             local function CalculateObjectPosition(pos)
-                local newpos = cam:WorldToViewportPoint(cam.CFrame:pointToWorldSpace(cam.CFrame:pointToObjectSpace(pos)))
+                local newpos = gameCamera:WorldToViewportPoint(gameCamera.CFrame:pointToWorldSpace(gameCamera.CFrame:pointToObjectSpace(pos)))
                 return Vector2.new(newpos.X, newpos.Y)
             end
             
@@ -1174,10 +1168,10 @@ if suc and type(web) ~= "boolean" then
                                 
                                 
                                 if isAlive(plr) and plr ~= lplr and (modulesenabled["ESP/Teammates"] or plr:GetAttribute("Team") ~= lplr:GetAttribute("Team")) then
-                                    local rootPos, rootVis = cam:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
-                                    local rootSize = (plr.Character.HumanoidRootPart.Size.X * 1200) * (cam.ViewportSize.X / 1920)
-                                    local headPos, headVis = cam:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position + Vector3.new(0, 1 + (plr.Character.Humanoid.RigType == Enum.HumanoidRigType.R6 and 2 or plr.Character.Humanoid.HipHeight), 0))
-                                    local legPos, legVis = cam:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position - Vector3.new(0, 1 + (plr.Character.Humanoid.RigType == Enum.HumanoidRigType.R6 and 2 or plr.Character.Humanoid.HipHeight), 0))
+                                    local rootPos, rootVis = gameCamera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
+                                    local rootSize = (plr.Character.HumanoidRootPart.Size.X * 1200) * (gameCamera.ViewportSize.X / 1920)
+                                    local headPos, headVis = gameCamera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position + Vector3.new(0, 1 + (plr.Character.Humanoid.RigType == Enum.HumanoidRigType.R6 and 2 or plr.Character.Humanoid.HipHeight), 0))
+                                    local legPos, legVis = gameCamera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position - Vector3.new(0, 1 + (plr.Character.Humanoid.RigType == Enum.HumanoidRigType.R6 and 2 or plr.Character.Humanoid.HipHeight), 0))
                                     rootPos = rootPos
                                     if rootVis then
                                         --thing.Visible = rootVis
@@ -1229,7 +1223,7 @@ if suc and type(web) ~= "boolean" then
                                 end
                                 
                                 if isAlive(plr) and plr ~= lplr and (modulesenabled["ESP/Teammates"] or plr:GetAttribute("Team") ~= lplr:GetAttribute("Team")) then
-                                    local rootPos, rootVis = cam:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
+                                    local rootPos, rootVis = gameCamera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
                                     if rootVis and plr.Character:FindFirstChild((plr.Character.Humanoid.RigType == Enum.HumanoidRigType.R6 and "Torso" or "UpperTorso")) and plr.Character:FindFirstChild((plr.Character.Humanoid.RigType == Enum.HumanoidRigType.R6 and "Left Arm" or "LeftHand")) and plr.Character:FindFirstChild((plr.Character.Humanoid.RigType == Enum.HumanoidRigType.R6 and "Right Arm" or "RightHand")) and plr.Character:FindFirstChild((plr.Character.Humanoid.RigType == Enum.HumanoidRigType.R6 and "Left Leg" or "LeftFoot")) and plr.Character:FindFirstChild((plr.Character.Humanoid.RigType == Enum.HumanoidRigType.R6 and "Right Leg" or "RightFoot")) and plr.Character:FindFirstChild("Head") then
                                         local head = CalculateObjectPosition((plr.Character["Head"].CFrame).p)
                                         local headfront = CalculateObjectPosition((plr.Character["Head"].CFrame * CFrame.new(0, 0, -0.5)).p)
@@ -1376,7 +1370,7 @@ if suc and type(web) ~= "boolean" then
                             end
 
                             if isAlive(plr) and plr ~= lplr and (modulesenabled["NameTags/Teammates"] or plr:GetAttribute("Team") ~= lplr:GetAttribute("Team")) then
-                                local headPos, headVis = cam:WorldToViewportPoint((plr.Character.HumanoidRootPart:GetRenderCFrame() * CFrame.new(0, plr.Character.Head.Size.Y + plr.Character.HumanoidRootPart.Size.Y, 0)).Position)
+                                local headPos, headVis = gameCamera:WorldToViewportPoint((plr.Character.HumanoidRootPart:GetRenderCFrame() * CFrame.new(0, plr.Character.Head.Size.Y + plr.Character.HumanoidRootPart.Size.Y, 0)).Position)
                                 
                                 if headVis then
                                     local alivecheck = isAlive()
@@ -1444,13 +1438,13 @@ if suc and type(web) ~= "boolean" then
                             end
 
                             if isAlive(plr) and plr ~= lplr and (modulesenabled["Tracers/Teammates"] or plr:GetAttribute("Team") ~= lplr:GetAttribute("Team")) then
-                                local rootScrPos = cam:WorldToViewportPoint((modulesenabled["Tracers/End Head Position"] and plr.Character.Head or plr.Character.HumanoidRootPart).Position)
-                                local tempPos = cam.CFrame:pointToObjectSpace((modulesenabled["Tracers/End Head Position"] and plr.Character.Head or plr.Character.HumanoidRootPart).Position)
+                                local rootScrPos = gameCamera:WorldToViewportPoint((modulesenabled["Tracers/End Head Position"] and plr.Character.Head or plr.Character.HumanoidRootPart).Position)
+                                local tempPos = gameCamera.CFrame:pointToObjectSpace((modulesenabled["Tracers/End Head Position"] and plr.Character.Head or plr.Character.HumanoidRootPart).Position)
                                 if rootScrPos.Z < 0 then
                                     tempPos = CFrame.Angles(0, 0, (math.atan2(tempPos.Y, tempPos.X) + math.pi)):vectorToWorldSpace((CFrame.Angles(0, math.rad(89.9), 0):vectorToWorldSpace(Vector3.new(0, 0, -1))));
                                 end
-                                local tracerPos = cam:WorldToViewportPoint(cam.CFrame:pointToWorldSpace(tempPos))
-                                local screensize = cam.ViewportSize
+                                local tracerPos = gameCamera:WorldToViewportPoint(gameCamera.CFrame:pointToWorldSpace(tempPos))
+                                local screensize = gameCamera.ViewportSize
                                 local startVector = Vector2.new(screensize.X / 2, ((not modulesenabled["Tracers/Start Bottom Position"]) and screensize.Y / 2 or screensize.Y))
                                 local endVector = Vector2.new(tracerPos.X, tracerPos.Y)
                                 local Distance = (startVector - endVector).Magnitude
