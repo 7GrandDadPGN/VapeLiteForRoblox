@@ -1,26 +1,8 @@
-local websocketfunc = syn and syn.websocket and syn.websocket.connect or Krnl and Krnl.WebSocket.connect or WebSocket and WebSocket.connect or websocket and websocket.connect
-local suc, web
-if syn and syn.toast_notification then 
-    suc, web = pcall(function() 
-        local socket = WebsocketClient.new("ws://127.0.0.1:6892/")
-        socket:Connect()
-        return socket 
-    end)
-else
-    suc, web = pcall(function() return websocketfunc("ws://127.0.0.1:6892/") end)
-end
+local suc, web = pcall(function() return WebSocket.connect("ws://127.0.0.1:6892/") end)
 repeat 
     task.wait(1)
     if not suc or suc and type(web) == "boolean" then
-        if syn and syn.toast_notification then 
-            suc, web = pcall(function() 
-                local socket = WebsocketClient.new("ws://127.0.0.1:6892/")
-                socket:Connect()
-                return socket 
-            end)
-        else
-            suc, web = pcall(function() return websocketfunc("ws://127.0.0.1:6892/") end)
-        end
+        suc, web = pcall(function() return WebSocket.connect("ws://127.0.0.1:6892/") end)
         if not suc or suc and type(web) == "boolean" then
             print("websocket error:", web)
         end
@@ -280,13 +262,10 @@ if suc and type(web) ~= "boolean" then
             end
 
             local InventoryUtil = require(game:GetService("ReplicatedStorage").TS.inventory["inventory-util"]).InventoryUtil
-            local bedwars = {   
+            local bedwars = setmetatable({ 
                 AppController = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["game-core"].out.client.controllers["app-controller"]).AppController,
                 BlockController = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["block-engine"].out).BlockEngine,
-                BlockCpsController = KnitClient.Controllers.BlockCpsController,
-                BlockPlacementController = KnitClient.Controllers.BlockPlacementController,
                 BlockEngine = require(lplr.PlayerScripts.TS.lib["block-engine"]["client-block-engine"]).ClientBlockEngine,
-                BowTable = KnitClient.Controllers.ProjectileController,
                 BowConstantsTable = debug.getupvalue(KnitClient.Controllers.ProjectileController.enableBeam, 5),
                 ClientHandlerSyncEvents = require(lplr.PlayerScripts.TS["client-sync-events"]).ClientSyncEvents,
                 ClientStoreHandler = require(game.Players.LocalPlayer.PlayerScripts.TS.ui.store).ClientStore,
@@ -300,7 +279,6 @@ if suc and type(web) ~= "boolean" then
                         hand = nil
                     })
                 end,
-                KatanaController = KnitClient.Controllers.DaoController,
                 KnockbackUtil = require(game:GetService("ReplicatedStorage").TS.damage["knockback-util"]).KnockbackUtil,
                 ItemTable = debug.getupvalue(require(game:GetService("ReplicatedStorage").TS.item["item-meta"]).getItemMeta, 1),
                 PlayerUtil = require(game:GetService("ReplicatedStorage").TS.player["player-util"]).GamePlayerUtil,
@@ -308,10 +286,13 @@ if suc and type(web) ~= "boolean" then
                 QueryUtil = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["game-core"].out).GameQueryUtil,
                 SoundManager = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@easy-games"]["game-core"].out).SoundManager,
 			    SoundList = require(game:GetService("ReplicatedStorage").TS.sound["game-sound"]).GameSound,
-                SprintController = KnitClient.Controllers.SprintController,
-                SwordController = KnitClient.Controllers.SwordController,
-                ViewmodelController = KnitClient.Controllers.ViewmodelController,
-            }
+                UILayers = require(replicatedStorageService['rbxts_include']['node_modules']['@easy-games']['game-core'].out).UILayers
+            }, {
+                __index = function(self, ind)
+                    rawset(self, ind, KnitClient.Controllers[ind])
+                    return rawget(self, ind)
+                end
+            })
 
             local function attackValue(vec)
                 return {
@@ -518,11 +499,11 @@ if suc and type(web) ~= "boolean" then
 
                     local aimmulti = findOption("AimAssist", "Smoothness")
                     BindToRenderStep("AimAssist", 1, function()
-                        if ((tick() - bedwars["SwordController"].lastSwing) < 0.4 or modulesenabled["AimAssist/Always Active"]) then
+                        if ((tick() - bedwars.SwordController.lastSwing) < 0.4 or modulesenabled["AimAssist/Always Active"]) then
                             local targettable = {}
                             local targetsize = 0
                             local plr = GetNearestHumanoidToPosition(true, 18)
-                            if plr and getEquipped()["Type"] == "sword" and #bedwars["AppController"]:getOpenApps() <= 3 and isNotHoveringOverGui() and bedwars["KatanaController"].chargingMaid == nil then
+                            if plr and getEquipped()["Type"] == "sword" and not bedwars.AppController:isLayerOpen(bedwars.UILayers.MAIN) and isNotHoveringOverGui() and bedwars.DaoController.chargingMaid == nil then
                                 local pos, vis = gameCamera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
                                 if vis and isrbxactive() then
                                     local senst = UserSettings():GetService("UserGameSettings").MouseSensitivity * (1 - (aimmulti.state / 100))
@@ -587,8 +568,8 @@ if suc and type(web) ~= "boolean" then
                                     if not autoclickermousedown then break end
                                     if not isNotHoveringOverGui() then continue end
                                     if not isAlive() then continue end
-                                    if #bedwars.AppController:getOpenApps() > 3 then continue end
-                                    if getEquipped().Type == "sword" and bedwars.KatanaController.chargingMaid == nil then 
+                                    if bedwars.AppController:isLayerOpen(bedwars.UILayers.MAIN) then continue end
+                                    if getEquipped().Type == "sword" and bedwars.DaoController.chargingMaid == nil then 
                                         task.spawn(function()
                                             if firstClick <= tick() then
                                                 bedwars.SwordController:swingSwordAtMouse()
@@ -796,13 +777,8 @@ if suc and type(web) ~= "boolean" then
             reach.addToggle("Vertical Check", function() end)
 
             addModule("HitFix", "Fixes terrible bedwars code for hitreg", function(callback)
-                if callback then
-                    debug.setconstant(bedwars.SwordController.swingSwordAtMouse, 27, "raycast")
-                    debug.setupvalue(bedwars.SwordController.swingSwordAtMouse, 4, bedwars.QueryUtil)
-                else
-                    debug.setconstant(bedwars.SwordController.swingSwordAtMouse, 27, "Raycast")
-                    debug.setupvalue(bedwars.SwordController.swingSwordAtMouse, 4, workspace)
-                end
+                debug.setconstant(bedwars.SwordController.swingSwordAtMouse, 23, callback and 'raycast' or 'Raycast')
+                debug.setupvalue(bedwars.SwordController.swingSwordAtMouse, 4, callback and bedwars.QueryUtil or workspace)
             end)
 
             local killaurafunc
@@ -816,7 +792,7 @@ if suc and type(web) ~= "boolean" then
                             local plr = getplayersnear(math.min(killaurareach.state + 0.4, 17.99), check)
                             local tool = equipped.Object
                             local swordmeta = bedwars.ItemTable[tool.Name]
-                            if plr and (workspace:GetServerTimeNow() - bedwars.SwordController.lastAttack) >= swordmeta.sword.attackSpeed then
+                            if plr then
                                 local entity = bedwars.getEntityTable:getEntity(plr.Character)
                                 if entity and bedwars.SwordController:canSee(entity) then
                                     local root = plr.Character.PrimaryPart
@@ -907,7 +883,7 @@ if suc and type(web) ~= "boolean" then
                                                     local newpos = (v["2"].AbsolutePosition + (v["2"].AbsoluteSize / 2)) + Vector2.new(0, 36)
                                                     if isrbxactive and mousemoverel and isrbxactive() then
                                                         repeat bettermousemove(newpos.X, newpos.Y) task.wait(0.01) until (inputService:GetMouseLocation() - newpos).magnitude <= 10 or (not bedwars["AppController"]:isAppOpen("ChestApp"))
-                                                        if bedwars["AppController"]:isAppOpen("ChestApp") then
+                                                        if bedwars.AppController:isAppOpen("ChestApp") then
                                                             mouse1click()
                                                             task.wait(0.1)
                                                         end
@@ -1006,7 +982,7 @@ if suc and type(web) ~= "boolean" then
                             if item.Object then 
                                 local plr = GetNearestHumanoidToMouse(true, 1000)
                                 if plr then 
-                                    local shootpos = bedwars["BowTable"]:getLaunchPosition(lplr.Character)
+                                    local shootpos = bedwars["ProjectileController"]:getLaunchPosition(lplr.Character)
                                     if not shootpos then return end
                                     local itemmeta = bedwars["ItemTable"][item.Object.Name]
                                     if not itemmeta.projectileSource then return end
