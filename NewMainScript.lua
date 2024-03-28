@@ -1418,7 +1418,7 @@ run(function()
                             oldHitBlock = bedwars.BlockBreaker.hitBlock
                             bedwars.BlockBreaker.hitBlock = function(self, maid, raycastparams, ...)
                                 local block = self.clientManager:getBlockSelector():getMouseInfo(1, {ray = raycastparams})
-                                if switchHotbarItem(block and block.target and block.blockInstance or nil) then return end
+                                if switchHotbarItem(block and block.target and block.target.blockInstance or nil) then return end
                                 return oldHitBlock(self, maid, raycastparams, ...)
                             end
                         else
