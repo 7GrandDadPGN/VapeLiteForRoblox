@@ -22,7 +22,7 @@ local lplr = playersService.LocalPlayer
 
 local suc, web = pcall(function() return WebSocket.connect('ws://127.0.0.1:6892/') end)
 if not suc or suc and type(web) == 'boolean' then
-    repeat 
+    repeat
         suc, web = pcall(function() return WebSocket.connect('ws://127.0.0.1:6892/') end)
         if not suc or suc and type(web) == 'boolean' then
             print('websocket error:', web)
@@ -39,13 +39,13 @@ end
 run(function()
     vapelite = {
         Connections = {},
-        Loaded = false, 
+        Loaded = false,
         Modules = {}
     }
 
     local function getTableSize(tab)
         local ind = 0
-        for i, v in tab do ind += 1 end
+        for _ in tab do ind += 1 end
         return ind
     end
 
@@ -62,7 +62,7 @@ run(function()
                 optionapi.Enabled = not optionapi.Enabled
                 optionsettings.Function(optionapi.Enabled)
             end
-            if optionsettings.Default then 
+            if optionsettings.Default then
                 optionapi:Toggle()
             end
 
@@ -86,15 +86,17 @@ run(function()
             return optionapi
         end
 
+        function moduleapi:Clean(obj) table.insert(moduleapi.Connections, obj) end
+
         function moduleapi:Toggle()
             moduleapi.Enabled = not moduleapi.Enabled
-            if not moduleapi.Enabled then 
-                for i, v in moduleapi.Connections do 
+            if not moduleapi.Enabled then
+                for _, v in moduleapi.Connections do
                     if typeof(v) == 'Instance' then
                         v:ClearAllChildren()
                         v:Destroy()
                     else
-                        v:Disconnect() 
+                        v:Disconnect()
                     end
                 end
                 table.clear(moduleapi.Connections)
@@ -125,14 +127,14 @@ run(function()
         })
 
         local got, data = pcall(function() return httpService:JSONDecode(vapelite.read.Event:Wait()) end)
-        if type(data) == 'table' then 
-            for i, v in data do 
+        if type(data) == 'table' then
+            for i, v in data do
                 local object = vapelite.Modules[i]
-                if object then 
-                    for i2, v2 in v.Options do 
+                if object then
+                    for i2, v2 in v.Options do
                         local optionobject = object.Options[i2]
                         if optionobject then
-                            if v2.Type == 'Toggle' then 
+                            if v2.Type == 'Toggle' then
                                 if v2.Enabled ~= optionobject.Enabled then optionobject:Toggle() end
                             else
                                 optionobject:SetValue(v2.Value)
@@ -144,12 +146,12 @@ run(function()
                 end
             end
         end
-        
+
         local replicatedmodules = {}
-        for i, v in vapelite.Modules do 
+        for i, v in vapelite.Modules do
             local newmodule = {name = i, desc = v.Tooltip, options = {}, toggled = v.Enabled}
-            for i2, v2 in v.Options do 
-                if v2.Type == 'Slider' then 
+            for i2, v2 in v.Options do
+                if v2.Type == 'Slider' then
                     table.insert(newmodule.options, {name = i2, type = 'Slider', state = v2.Value, min = v2.Min, max = v2.Max, index = v2.Index})
                 else
                     table.insert(newmodule.options, {name = i2, type = 'Toggle', toggled = v2.Enabled, index = v2.Index})
@@ -179,8 +181,8 @@ run(function()
             if module and data.state ~= module.Enabled then module:Toggle() end
         elseif data.msg == 'togglebuttontoggle' or data.msg == 'togglebuttonslider' then
             local option = vapelite.Modules[data.module] and vapelite.Modules[data.module].Options[data.setting]
-            if option then 
-                if option.Type == 'Toggle' then 
+            if option then
+                if option.Type == 'Toggle' then
                     option:Toggle(data.state)
                 else
                     option:SetValue(data.state)
@@ -200,9 +202,10 @@ run(function()
         if web then pcall(function() web:Disconnect() end) end
         vapelite:Save()
         vapelite.Loaded = nil
-        for i, v in vapelite.Modules do if v.Enabled then v:Toggle() end end
-        for i, v in vapelite.Connections do pcall(function() v:Disconnect() end) end
-    
+        for _, v in vapelite.Modules do if v.Enabled then v:Toggle() end end
+        for _, v in vapelite.Connections do pcall(function() v:Disconnect() end) end
+
+        shared.vapelite = nil
         if tp then return end
         task.spawn(function()
             repeat task.wait() until game:IsLoaded()
@@ -211,6 +214,8 @@ run(function()
             loadstring(readfile('vapelite.lua'))()
         end)
     end
+
+    shared.vapelite = vapelite.Uninject
 end)
 
 --[[
@@ -237,9 +242,9 @@ run(function()
         else
             local store = {hand = {}, tools = {}}
             local entitylib = {
-                isAlive = false, 
-                character = {}, 
-                List = {}, 
+                isAlive = false,
+                character = {},
+                List = {},
                 Events = setmetatable({}, {
                     __index = function(self, index)
                         self[index] = {
@@ -252,7 +257,7 @@ run(function()
                                 end}
                             end,
                             Fire = function(self, ...)
-                                for i, v in self.Connections do task.spawn(v, ...) end
+                                for _, v in self.Connections do task.spawn(v, ...) end
                             end,
                             Destroy = function(self)
                                 table.clear(self.Connections)
@@ -269,11 +274,11 @@ run(function()
             local swingHook
 
             local function getEntitiesNear(range)
-                if entitylib.isAlive then 
+                if entitylib.isAlive then
                     local localpos, lteam = entitylib.character.RootPart.Position, lplr:GetAttribute('Team')
                     local returned, mag = nil, range
-                    for i, v in entitylib.List do
-                        if v.Player:GetAttribute('Team') ~= lteam and v.Health > 0 then 
+                    for _, v in entitylib.List do
+                        if v.Player:GetAttribute('Team') ~= lteam and v.Health > 0 then
                             local newmag = (v.RootPart.Position - localpos).Magnitude
                             if newmag <= mag then
                                 returned, mag = v, newmag
@@ -283,12 +288,24 @@ run(function()
                     return returned
                 end
             end
-            
+
+            local function hotbarSwitch(slot)
+                if slot and store.inventory.hotbarSlot ~= slot then
+                    bedwars.Store:dispatch({
+                        type = 'InventorySelectHotbarSlot',
+                        slot = slot
+                    })
+                    inventoryEvent.Event:Wait()
+                    return true
+                end
+                return false
+            end
+
             --init
             run(function()
                 local function dumpRemote(tab)
                     local ind-- = table.find(tab, 'Client')
-                    for i, v in tab do 
+                    for i, v in tab do
                         if v == 'Client' then
                             ind = i
                             break
@@ -338,13 +355,13 @@ run(function()
                         local oldInventory = (oldStore.Inventory and oldStore.Inventory.observedInventory or {inventory = {}})
                         store.inventory = newInventory
                         if newInventory ~= oldInventory then inventoryEvent:Fire() end
-                        if newInventory.inventory.items ~= oldInventory.inventory.items then 
+                        if newInventory.inventory.items ~= oldInventory.inventory.items then
                             --if this was a perfect world then I could check for the item added, but no ;-;
-                            for i, v in {'stone', 'wood', 'wool'} do 
+                            for _, v in {'stone', 'wood', 'wool'} do
                                 store.tools[v] = getTool(v)
                             end
                         end
-                        if newInventory.inventory.hand ~= oldInventory.inventory.hand then 
+                        if newInventory.inventory.hand ~= oldInventory.inventory.hand then
                             local currentHand = newStore.Inventory.observedInventory.inventory.hand
                             local handType = ''
                             if currentHand then
@@ -366,7 +383,8 @@ run(function()
                     local hum = char:WaitForChild('Humanoid', 5)
                     if vapelite.Loaded == nil or not hum or not head then return end
                     local plr = playersService:GetPlayerFromCharacter(char)
-                    if plr then 
+
+                    if plr then
                         local entity = {
                             Connections = {},
                             Character = char,
@@ -380,14 +398,15 @@ run(function()
                             RootPart = humrootpart,
                             Targetable = true
                         }
-                        if plr == lplr then 
+
+                        if plr == lplr then
                             entitylib.character = entity
                             entitylib.isAlive = true
                             entitylib.Events.LocalAdded:Fire(entity)
                         else
                             table.insert(entitylib.List, entity)
-                            for i, v in {'Health', 'MaxHealth'} do 
-                                table.insert(entity.Connections, char:GetAttributeChangedSignal(v):Connect(function() 
+                            for _, v in {'Health', 'MaxHealth'} do
+                                table.insert(entity.Connections, char:GetAttributeChangedSignal(v):Connect(function()
                                     entity.Health = (char:GetAttribute('Health') or 100)
                                     entity.MaxHealth = char:GetAttribute('MaxHealth') or 100
                                     entitylib.Events.EntityUpdated:Fire(entity)
@@ -400,22 +419,22 @@ run(function()
                 table.insert(vapelite.Connections, collectionService:GetInstanceAddedSignal('inventory-entity'):Connect(addEntity))
                 table.insert(vapelite.Connections, collectionService:GetInstanceRemovedSignal('inventory-entity'):Connect(function(v)
                     local plr = playersService:GetPlayerFromCharacter(v)
-                    if plr == lplr then 
+                    if plr == lplr then
                         entitylib.isAlive = false
                         entitylib.Events.LocalRemoved:Fire()
                     else
                         for i, v in entitylib.List do
-                            if v.Player == plr then 
-                                for i, v in v.Connections do v:Disconnect() end
+                            if v.Player == plr then
+                                for _, v in v.Connections do v:Disconnect() end
                                 table.clear(v.Connections)
                                 table.remove(entitylib.List, i)
                                 entitylib.Events.EntityRemoved:Fire(v)
-                                break 
+                                break
                             end
                         end
                     end
                 end))
-                for i, v in collectionService:GetTagged('inventory-entity') do addEntity(v) end
+                for _, v in collectionService:GetTagged('inventory-entity') do addEntity(v) end
 
                 swingHook = bedwars.SwordController.playSwordEffect
                 bedwars.SwordController.playSwordEffect = function(...)
@@ -430,8 +449,8 @@ run(function()
                 table.insert(vapelite.Connections, {Disconnect = function()
                     table.clear(bedwars)
                     table.clear(store)
-                    for i, v in entitylib.List do 
-                        for i, v in v.Connections do v:Disconnect() end
+                    for _, v in entitylib.List do
+                        for _, v in v.Connections do v:Disconnect() end
                         table.clear(v.Connections)
                     end
                     table.clear(entitylib.List)
@@ -461,11 +480,11 @@ run(function()
                 AimAssist = vapelite:CreateModule({
                     Name = 'AimAssist',
                     Function = function(callback)
-                        if callback then 
+                        if callback then
                             table.insert(AimAssist.Connections, runService.RenderStepped:Connect(function(delta)
-                                if store.hand.Type == 'sword' and (AimAssistActive.Enabled or (tick() - bedwars.SwordController.lastSwing) < 0.2) then 
+                                if store.hand.Type == 'sword' and (AimAssistActive.Enabled or (tick() - bedwars.SwordController.lastSwing) < 0.2) then
                                     local plr = getEntitiesNear(AimAssistRange.Value)
-                                    if plr and not bedwars.AppController:isLayerOpen(bedwars.UILayers.MAIN) then 
+                                    if plr and not bedwars.AppController:isLayerOpen(bedwars.UILayers.MAIN) then
                                         local pos, vis = gameCamera:WorldToViewportPoint(plr.RootPart.Position)
                                         if vis and isrbxactive() then
                                             pos = (Vector2.new(pos.X, pos.Y) - inputService:GetMouseLocation()) * ((100 - AimAssistSmoothness.Value) * delta / 3)
@@ -499,19 +518,20 @@ run(function()
                 local AutoClickerCPS = {GetRandomValue = function() return 1 end}
                 local AutoClickerBlocks = {Enabled = false}
                 local AutoClickerThread
-                
+
                 local function isNotHoveringOverGui()
                     local mousepos = inputService:GetMouseLocation() - Vector2.new(0, 36)
-                    for i, v in lplr.PlayerGui:GetGuiObjectsAtPosition(mousepos.X, mousepos.Y) do 
+                    for _, v in lplr.PlayerGui:GetGuiObjectsAtPosition(mousepos.X, mousepos.Y) do
                         if v.Active then return false end
                     end
-                    for i, v in coreGui:GetGuiObjectsAtPosition(mousepos.X, mousepos.Y) do 
+                    for _, v in coreGui:GetGuiObjectsAtPosition(mousepos.X, mousepos.Y) do
                         if v.Parent:IsA('ScreenGui') and v.Parent.Enabled and v.Active then return false end
                     end
                     return true
                 end
-                
+
                 local function AutoClick()
+                    if AutoClickerThread then task.cancel(AutoClickerThread) end
                     AutoClickerThread = task.spawn(function()
                         local first = true
                         repeat
@@ -520,7 +540,7 @@ run(function()
                             if not AutoClicker.Enabled then break end
                             if not isNotHoveringOverGui() then continue end
                             if bedwars.AppController:isLayerOpen(bedwars.UILayers.MAIN) then continue end
-                            if store.hand.Type == 'block' and AutoClickerBlocks.Enabled and bedwars.BlockPlacementController.blockPlacer then 
+                            if store.hand.Type == 'block' and AutoClickerBlocks.Enabled and bedwars.BlockPlacementController.blockPlacer then
                                 if (workspace:GetServerTimeNow() - bedwars.BlockCpsController.lastPlaceTimestamp) >= ((1 / 12) * 0.5) then
                                     local mouseinfo = bedwars.BlockPlacementController.blockPlacer.clientManager:getBlockSelector():getMouseInfo(0)
                                     if mouseinfo then
@@ -531,13 +551,13 @@ run(function()
                                         end)
                                     end
                                 end
-                            elseif store.hand.Type == 'sword' and bedwars.DaoController.chargingMaid == nil then 
+                            elseif store.hand.Type == 'sword' and bedwars.DaoController.chargingMaid == nil then
                                 bedwars.SwordController:swingSwordAtMouse()
                             end
                         until false
                     end)
                 end
-                
+
                 AutoClicker = vapelite:CreateModule({
                     Name = 'AutoClicker',
                     Function = function(callback)
@@ -578,13 +598,13 @@ run(function()
                 Reach = vapelite:CreateModule({
                     Name = 'Reach',
                     Function = function(callback)
-                        if callback then 
+                        if callback then
                             table.insert(Reach.Connections, swingEvent.Event:Connect(function()
                                 rayparams.FilterDescendantsInstances = {lplr.Character}
                                 local ray = bedwars.QueryUtil:raycast(mouse.UnitRay.Origin, mouse.UnitRay.Direction * 200, rayparams)
-                                if ray and ray.Instance and (ray.Instance.Position - entitylib.character.RootPart.Position).Magnitude <= ReachValue.Value + 2 then 
+                                if ray and ray.Instance and (ray.Instance.Position - entitylib.character.RootPart.Position).Magnitude <= ReachValue.Value + 2 then
                                     local plr
-                                    for i, v in entitylib.List do 
+                                    for _, v in entitylib.List do
                                         if ray.Instance:IsDescendantOf(v.Character) then plr = v break end
                                     end
                                     if plr then
@@ -598,7 +618,7 @@ run(function()
                                             entityInstance = plr.Character,
                                             validate = {
                                                 raycast = {
-                                                    cameraPosition = {value = gameCamera.CFrame.Position}, 
+                                                    cameraPosition = {value = gameCamera.CFrame.Position},
                                                     cursorDirection = {value = Ray.new(gameCamera.CFrame.p, plr.RootPart.Position).Unit.Direction}
                                                 },
                                                 targetPosition = {value = plr.RootPart.Position},
@@ -609,7 +629,7 @@ run(function()
                                 end
                             end))
                         end
-                    end, 
+                    end,
                     Tooltip = 'Extends attack reach'
                 })
                 ReachValue = Reach:CreateSlider({
@@ -631,7 +651,7 @@ run(function()
                 local VelocityTargeting = {Enabled = false}
                 local velorand = Random.new()
                 local applyKnockback
-                
+
                 Velocity = vapelite:CreateModule({
                     Name = 'Velocity',
                     Function = function(callback)
@@ -695,10 +715,10 @@ run(function()
                 Killaura = vapelite:CreateModule({
                     Name = 'Killaura',
                     Function = function(callback)
-                        if callback then 
+                        if callback then
                             table.insert(Killaura.Connections, swingEvent.Event:Connect(function()
                                 local plr = getEntitiesNear(KillauraAttackRange.Value)
-                                if plr and store.hand.Type == 'sword' then 
+                                if plr and store.hand.Type == 'sword' then
                                     if not bedwars.SwordController:canSee({getInstance = function() return plr.Character end}) then return end
                                     local selfrootpos = entitylib.character.RootPart.Position
                                     local localfacing = entitylib.character.RootPart.CFrame.LookVector
@@ -713,7 +733,7 @@ run(function()
                                         entityInstance = plr.Character,
                                         validate = {
                                             raycast = {
-                                                cameraPosition = {value = gameCamera.CFrame.Position}, 
+                                                cameraPosition = {value = gameCamera.CFrame.Position},
                                                 cursorDirection = {value = Ray.new(gameCamera.CFrame.p, plr.RootPart.Position).Unit.Direction}
                                             },
                                             targetPosition = {value = plr.RootPart.Position},
@@ -757,16 +777,16 @@ run(function()
                 local ESPModes = {'2D', '3D', 'Skeleton'}
                 local ESPFolder = {}
                 local methodused
-                
+
                 local function floorESPPosition(pos)
                     return pos // 1
                 end
-                
+
                 local function ESPWorldToViewport(pos)
                     local newpos = gameCamera:WorldToViewportPoint(gameCamera.CFrame:pointToWorldSpace(gameCamera.CFrame:pointToObjectSpace(pos)))
                     return Vector2.new(newpos.X, newpos.Y)
                 end
-                
+
                 local ESPAdded = {
                     Drawing2D = function(ent)
                         if ESPTeammates.Enabled and (not ent.Targetable) and (not ent.Friend) then return end
@@ -789,7 +809,7 @@ run(function()
                         EntityESP.Border2.Thickness = 1
                         EntityESP.Border2.Filled = false
                         EntityESP.Border2.Color = Color3.new()
-                        if ESPHealthBar.Enabled then 
+                        if ESPHealthBar.Enabled then
                             EntityESP.HealthLine = Drawing.new('Line')
                             EntityESP.HealthLine.Thickness = 1
                             EntityESP.HealthLine.ZIndex = 2
@@ -800,8 +820,8 @@ run(function()
                             EntityESP.HealthBorder.ZIndex = 1
                             EntityESP.HealthBorder.Color = Color3.new()
                         end
-                        if ESPName.Enabled then 
-                            if ESPBackground.Enabled then 
+                        if ESPName.Enabled then
+                            if ESPBackground.Enabled then
                                 EntityESP.TextBKG = Drawing.new('Square')
                                 EntityESP.TextBKG.Transparency = 0.35
                                 EntityESP.TextBKG.ZIndex = 0
@@ -840,7 +860,7 @@ run(function()
                         EntityESP.Line11 = Drawing.new('Line')
                         EntityESP.Line12 = Drawing.new('Line')
                         local color = ent.Player.TeamColor.Color
-                        for i, v in EntityESP do v.Thickness = 1 v.Color = color end
+                        for _, v in EntityESP do v.Thickness = 1 v.Color = color end
                         ESPFolder[ent] = EntityESP
                     end,
                     DrawingSkeleton = function(ent)
@@ -856,20 +876,20 @@ run(function()
                         EntityESP.LeftLeg = Drawing.new('Line')
                         EntityESP.RightLeg = Drawing.new('Line')
                         local color = ent.Player.TeamColor.Color
-                        for i, v in EntityESP do v.Thickness = 2 v.Color = color end
+                        for _, v in EntityESP do v.Thickness = 2 v.Color = color end
                         ESPFolder[ent] = EntityESP
                     end
                 }
-                
+
                 local ESPRemoved = {
                     Drawing2D = function(ent)
                         local EntityESP = ESPFolder[ent]
                         if EntityESP then
                             ESPFolder[ent] = nil
-                            for i, v in EntityESP do
-                                pcall(function() 
-                                    v.Visible = false 
-                                    v:Remove() 
+                            for _, v in EntityESP do
+                                pcall(function()
+                                    v.Visible = false
+                                    v:Remove()
                                 end)
                             end
                         end
@@ -877,25 +897,25 @@ run(function()
                 }
                 ESPRemoved.Drawing3D = ESPRemoved.Drawing2D
                 ESPRemoved.DrawingSkeleton = ESPRemoved.Drawing2D
-                
+
                 local ESPUpdated = {
                     Drawing2D = function(ent)
                         local EntityESP = ESPFolder[ent]
                         if EntityESP then
-                            if EntityESP.HealthLine then 
+                            if EntityESP.HealthLine then
                                 EntityESP.HealthLine.Color = Color3.fromHSV(math.clamp(ent.Health / ent.MaxHealth, 0, 1) / 2.5, 0.89, 0.75)
                             end
-                            if EntityESP.Text then 
+                            if EntityESP.Text then
                                 EntityESP.Text.Text = ent.Player and (ESPDisplay.Enabled and ent.Player.DisplayName or ent.Player.Name) or ent.Character.Name
                                 EntityESP.Drop.Text = EntityESP.Text.Text
                             end
                         end
                     end
                 }
-                
+
                 local ESPLoop = {
                     Drawing2D = function()
-                        for ent, EntityESP in ESPFolder do 
+                        for ent, EntityESP in ESPFolder do
                             local rootPos, rootVis = gameCamera:WorldToViewportPoint(ent.RootPart.Position)
                             for _, obj in EntityESP do obj.Visible = rootVis end
                             if not rootVis then continue end
@@ -909,7 +929,7 @@ run(function()
                             EntityESP.Border.Size = floorESPPosition(Vector2.new(sizex + 2, sizey - 2))
                             EntityESP.Border2.Position = floorESPPosition(Vector2.new(posx + 1, posy - 1))
                             EntityESP.Border2.Size = floorESPPosition(Vector2.new(sizex - 2, sizey + 2))
-                            if EntityESP.HealthLine then 
+                            if EntityESP.HealthLine then
                                 local healthposy = sizey * math.clamp(ent.Health / ent.MaxHealth, 0, 1)
                                 EntityESP.HealthLine.Visible = ent.Health > 0
                                 EntityESP.HealthLine.From = floorESPPosition(Vector2.new(posx - 6, posy + (sizey - (sizey - healthposy))))
@@ -917,10 +937,10 @@ run(function()
                                 EntityESP.HealthBorder.From = floorESPPosition(Vector2.new(posx - 6, posy + 1))
                                 EntityESP.HealthBorder.To = floorESPPosition(Vector2.new(posx - 6, (posy + sizey) - 1))
                             end
-                            if EntityESP.Text then 
+                            if EntityESP.Text then
                                 EntityESP.Text.Position = floorESPPosition(Vector2.new(posx + (sizex / 2), posy + (sizey - 28)))
                                 EntityESP.Drop.Position = EntityESP.Text.Position + Vector2.new(1, 1)
-                                if EntityESP.TextBKG then 
+                                if EntityESP.TextBKG then
                                     EntityESP.TextBKG.Size = EntityESP.Text.TextBounds + Vector2.new(8, 4)
                                     EntityESP.TextBKG.Position = EntityESP.Text.Position - Vector2.new(4 + (EntityESP.Text.TextBounds.X / 2), 0)
                                 end
@@ -928,7 +948,7 @@ run(function()
                         end
                     end,
                     Drawing3D = function()
-                        for ent, EntityESP in ESPFolder do 
+                        for ent, EntityESP in ESPFolder do
                             local rootPos, rootVis = gameCamera:WorldToViewportPoint(ent.RootPart.Position)
                             for _, obj in EntityESP do obj.Visible = rootVis end
                             if not rootVis then continue end
@@ -967,7 +987,7 @@ run(function()
                         end
                     end,
                     DrawingSkeleton = function()
-                        for ent, EntityESP in ESPFolder do 
+                        for ent, EntityESP in ESPFolder do
                             local rootPos, rootVis = gameCamera:WorldToViewportPoint(ent.RootPart.Position)
                             for _, obj in EntityESP do obj.Visible = rootVis end
                             if not rootVis then continue end
@@ -1007,17 +1027,17 @@ run(function()
                         end
                     end
                 }
-                
+
                 ESP = vapelite:CreateModule({
-                    Name = 'ESP', 
-                    Function = function(callback) 
+                    Name = 'ESP',
+                    Function = function(callback)
                         if callback then
                             methodused = 'Drawing'..ESPModes[ESPMethod.Value]
                             if ESPRemoved[methodused] then
                                 table.insert(ESP.Connections, entitylib.Events.EntityRemoved:Connect(ESPRemoved[methodused]))
                             end
                             if ESPAdded[methodused] then
-                                for i, v in entitylib.List do 
+                                for _, v in entitylib.List do
                                     if ESPFolder[v] then ESPRemoved[methodused](v) end
                                     ESPAdded[methodused](v)
                                 end
@@ -1028,16 +1048,14 @@ run(function()
                             end
                             if ESPUpdated[methodused] then
                                 table.insert(ESP.Connections, entitylib.Events.EntityUpdated:Connect(ESPUpdated[methodused]))
-                                for i, v in entitylib.List do 
-                                    ESPUpdated[methodused](v)
-                                end
+                                for _, v in entitylib.List do ESPUpdated[methodused](v) end
                             end
-                            if ESPLoop[methodused] then 
+                            if ESPLoop[methodused] then
                                 table.insert(ESP.Connections, runService.RenderStepped:Connect(ESPLoop[methodused]))
                             end
                         else
                             if ESPRemoved[methodused] then
-                                for i, v in ESPFolder do ESPRemoved[methodused](i) end
+                                for i in ESPFolder do ESPRemoved[methodused](i) end
                             end
                         end
                     end,
@@ -1055,11 +1073,11 @@ run(function()
                     Default = true
                 })
                 ESPHealthBar = ESP:CreateToggle({
-                    Name = 'Health Bar', 
+                    Name = 'Health Bar',
                     Function = function() if ESP.Enabled then ESP:Toggle() ESP:Toggle() end end
                 })
                 ESPName = ESP:CreateToggle({
-                    Name = 'Name', 
+                    Name = 'Name',
                     Function = function() if ESP.Enabled then ESP:Toggle() ESP:Toggle() end end
                 })
                 ESPDisplay = ESP:CreateToggle({
@@ -1109,7 +1127,7 @@ run(function()
                         local color = Color3.fromHSV(math.clamp(ent.Health / ent.MaxHealth, 0, 1) / 2.5, 0.89, 0.75)
                         NameTagsStrings[ent] = NameTagsStrings[ent]..' '..math.round(ent.Health)
                     end
-                    if NameTagsDistance.Enabled then 
+                    if NameTagsDistance.Enabled then
                         NameTagsStrings[ent] = '[%s] '..NameTagsStrings[ent]
                     end
                     EntityNameTag.Text.Text = NameTagsStrings[ent]
@@ -1117,30 +1135,30 @@ run(function()
                     EntityNameTag.BG.Size = Vector2.new(EntityNameTag.Text.TextBounds.X + 8, EntityNameTag.Text.TextBounds.Y + 7)
                     NameTagsDrawingFolder[ent] = EntityNameTag
                 end
-                
+
 
                 local NameTagRemoved = function(ent)
                     local v = NameTagsDrawingFolder[ent]
-                    if v then 
+                    if v then
                         NameTagsDrawingFolder[ent] = nil
                         NameTagsStrings[ent] = nil
                         NameTagsSizes[ent] = nil
-                        for i2, v2 in v do
+                        for _, v2 in v do
                             pcall(function() v2.Visible = false v2:Remove() end)
                         end
                     end
                 end
-                
+
 
                 local NameTagUpdated = function(ent)
                     local EntityNameTag = NameTagsDrawingFolder[ent]
-                    if EntityNameTag then 
+                    if EntityNameTag then
                         NameTagsSizes[ent] = nil
                         NameTagsStrings[ent] = ent.Player and (NameTagsDisplayName.Enabled and ent.Player.DisplayName or ent.Player.Name) or ent.Character.Name
                         if NameTagsHealth.Enabled then
                             NameTagsStrings[ent] = NameTagsStrings[ent]..' '..math.round(ent.Health)
                         end
-                        if NameTagsDistance.Enabled then 
+                        if NameTagsDistance.Enabled then
                             NameTagsStrings[ent] = '[%s] '..NameTagsStrings[ent]
                             EntityNameTag.Text.Text = entitylib.isAlive and string.format(NameTagsStrings[ent], math.floor((entitylib.character.RootPart.Position - ent.RootPart.Position).Magnitude)) or NameTagsStrings[ent]
                         else
@@ -1150,19 +1168,19 @@ run(function()
                         EntityNameTag.Text.Color = ent.Player.TeamColor.Color
                     end
                 end
-                
+
 
                 local NameTagLoop = function()
-                    for ent, EntityNameTag in NameTagsDrawingFolder do 
+                    for ent, EntityNameTag in NameTagsDrawingFolder do
                         local headPos, headVis = gameCamera:WorldToScreenPoint(ent.RootPart.Position + Vector3.new(0, ent.HipHeight + 1, 0))
                         EntityNameTag.Text.Visible = headVis
                         EntityNameTag.BG.Visible = headVis
-                        if not headVis then 
+                        if not headVis then
                             continue
                         end
                         if NameTagsDistance.Enabled and entitylib.isAlive then
                             local mag = math.floor((entitylib.character.RootPart.Position - ent.RootPart.Position).Magnitude)
-                            if NameTagsSizes[ent] ~= mag then 
+                            if NameTagsSizes[ent] ~= mag then
                                 EntityNameTag.Text.Text = string.format(NameTagsStrings[ent], mag)
                                 EntityNameTag.BG.Size = Vector2.new(EntityNameTag.Text.TextBounds.X + 8, EntityNameTag.Text.TextBounds.Y + 7)
                                 NameTagsSizes[ent] = mag
@@ -1175,11 +1193,11 @@ run(function()
 
 
                 NameTags = vapelite:CreateModule({
-                    Name = 'NameTags', 
-                    Function = function(callback) 
+                    Name = 'NameTags',
+                    Function = function(callback)
                         if callback then
                             table.insert(NameTags.Connections, entitylib.Events.EntityRemoved:Connect(NameTagRemoved))
-                            for i, v in entitylib.List do 
+                            for _, v in entitylib.List do
                                 if NameTagsDrawingFolder[v] then NameTagRemoved(v) end
                                 NameTagAdded(v)
                                 NameTagUpdated(v)
@@ -1191,7 +1209,7 @@ run(function()
                             table.insert(NameTags.Connections, entitylib.Events.EntityUpdated:Connect(NameTagUpdated))
                             table.insert(NameTags.Connections, runService.RenderStepped:Connect(NameTagLoop))
                         else
-                            for i, v in NameTagsDrawingFolder do NameTagRemoved(i) end
+                            for i in NameTagsDrawingFolder do NameTagRemoved(i) end
                         end
                     end,
                     Tooltip = 'Renders nametags on entities through walls.'
@@ -1217,20 +1235,20 @@ run(function()
                     Max = 10
                 })
                 NameTagsHealth = NameTags:CreateToggle({
-                    Name = 'Health', 
+                    Name = 'Health',
                     Function = function() if NameTags.Enabled then NameTags:Toggle() NameTags:Toggle() end end
                 })
                 NameTagsDistance = NameTags:CreateToggle({
-                    Name = 'Distance', 
+                    Name = 'Distance',
                     Function = function() if NameTags.Enabled then NameTags:Toggle() NameTags:Toggle() end end
                 })
                 NameTagsDisplayName = NameTags:CreateToggle({
-                    Name = 'Use Displayname', 
+                    Name = 'Use Displayname',
                     Function = function() if NameTags.Enabled then NameTags:Toggle() NameTags:Toggle() end end,
                     Default = true
                 })
                 NameTagsTeammates = NameTags:CreateToggle({
-                    Name = 'Priority Only', 
+                    Name = 'Priority Only',
                     Function = function() if NameTags.Enabled then NameTags:Toggle() NameTags:Toggle() end end,
                     Default = true
                 })
@@ -1257,17 +1275,17 @@ run(function()
 
                 local TracersRemoved = function(ent)
                     local v = TracersFolder[ent]
-                    if v then 
+                    if v then
                         TracersFolder[ent] = nil
                         pcall(function() v.Visible = false v:Remove() end)
                     end
                 end
 
                 local TracersLoop = function()
-                    for ent, EntityTracer in TracersFolder do 
+                    for ent, EntityTracer in TracersFolder do
                         local distance = entitylib.isAlive and (entitylib.character.RootPart.Position - ent.RootPart.Position).Magnitude
                         local rootPos, rootVis = gameCamera:WorldToViewportPoint(ent[TracersEndPosition.Value == 2 and 'RootPart' or 'Head'].Position)
-                        if not rootVis and TracersBehind.Enabled then 
+                        if not rootVis and TracersBehind.Enabled then
                             local tempPos = gameCamera.CFrame:pointToObjectSpace(ent[TracersEndPosition.Value == 2 and 'RootPart' or 'Head'].Position)
                             tempPos = CFrame.Angles(0, 0, (math.atan2(tempPos.Y, tempPos.X) + math.pi)):vectorToWorldSpace((CFrame.Angles(0, math.rad(89.9), 0):vectorToWorldSpace(Vector3.new(0, 0, -1))));
                             rootPos = gameCamera:WorldToViewportPoint(gameCamera.CFrame:pointToWorldSpace(tempPos))
@@ -1287,11 +1305,11 @@ run(function()
 
 
                 Tracers = vapelite:CreateModule({
-                    Name = 'Tracers', 
-                    Function = function(callback) 
+                    Name = 'Tracers',
+                    Function = function(callback)
                         if callback then
                             table.insert(Tracers.Connections, entitylib.Events.EntityRemoved:Connect(TracersRemoved))
-                            for i, v in entitylib.List do 
+                            for _, v in entitylib.List do
                                 if TracersFolder[v] then TracersRemoved(v) end
                                 TracersAdded(v)
                             end
@@ -1301,7 +1319,7 @@ run(function()
                             end))
                             table.insert(Tracers.Connections, runService.RenderStepped:Connect(TracersLoop))
                         else
-                            for i, v in TracersFolder do TracersRemoved(i) end
+                            for i in TracersFolder do TracersRemoved(i) end
                         end
                     end,
                     Tooltip = 'Renders tracers on players.'
@@ -1319,11 +1337,11 @@ run(function()
                     Max = 2
                 })
                 TracersTransparency = Tracers:CreateSlider({
-                    Name = 'Transparency', 
+                    Name = 'Transparency',
                     Min = 0,
-                    Max = 10, 
-                    Function = function(val) 
-                        for ent, EntityTracer in TracersFolder do 
+                    Max = 10,
+                    Function = function(val)
+                        for ent, EntityTracer in TracersFolder do
                             EntityTracer.Transparency = 1 - (val / 10)
                         end
                     end
@@ -1348,30 +1366,84 @@ run(function()
             ]]
 
             run(function()
+                local AutoShoot = {Enabled = false}
+                local shooting = false
+                local old
+
+                local function getCrossbows()
+                    local crossbows = {}
+                    for i, v in store.inventory.hotbar do
+                        if v.item and v.item.itemType:find('crossbow') and i ~= (store.inventory.hotbarSlot + 1) then table.insert(crossbows, i - 1) end
+                    end
+                    return crossbows
+                end
+
+                AutoShoot = vapelite:CreateModule({
+                    Name = 'AutoShoot',
+                    Function = function(callback)
+                        if callback then
+                            old = bedwars.ProjectileController.createLocalProjectile
+                            bedwars.ProjectileController.createLocalProjectile = function(source, data, proj, ...)
+                                if source and (proj == 'arrow' or proj == 'fireball') and not shooting then
+                                    task.spawn(function()
+                                        local bows = getCrossbows()
+                                        if #bows > 0 then
+                                            shooting = true
+                                            task.wait(0.1)
+                                            local selected = store.inventory.hotbarSlot
+                                            for i, v in getCrossbows() do
+                                                if hotbarSwitch(v, true) then
+                                                    task.wait(0.05)
+                                                    mouse1click()
+                                                    task.wait(0.05)
+                                                end
+                                            end
+                                            hotbarSwitch(selected)
+                                            shooting = false
+                                        end
+                                    end)
+                                end
+                                return old(source, data, proj, ...)
+                            end
+                        else
+                            bedwars.ProjectileController.createLocalProjectile = old
+                        end
+                    end,
+                    Tooltip = 'Automatically crossbow macro\'s'
+                })
+            end)
+
+            run(function()
                 local PickupRange = {Enabled = false}
-                local PickupRangeRange = {Value = 1}
-                local PickupRangeDelay = {}
-                
+                local PickupRangeLower = {Enabled = false}
+
                 PickupRange = vapelite:CreateModule({
-                    Name = 'PickupRange', 
+                    Name = 'PickupRange',
                     Function = function(callback)
                         if callback then
                             repeat
                                 if entitylib.isAlive then
                                     local localpos = entitylib.character.RootPart.Position
                                     for i, v in collectionService:GetTagged('ItemDrop') do
-                                        if tick() - (v:GetAttribute('ClientDropTime') or 0) > 2 then
-                                            if (localpos - v.Position).Magnitude <= 6 then
-                                                task.spawn(function()
-                                                    bedwars.Client:Get(bedwars.PickupRemote):CallServerAsync({
-                                                        itemDrop = v
-                                                    }):andThen(function(suc)
-                                                        if suc and bedwars.SoundList then
-                                                            bedwars.SoundManager:playSound(bedwars.SoundList.PICKUP_ITEM_DROP)
+                                        if tick() - (v:GetAttribute('ClientDropTime') or 0) < 2 then continue end
+                                        if (localpos - v.Position).Magnitude <= 6 then
+                                            if PickupRangeLower.Enabled and (localpos.Y - v.Position.Y) < (entitylib.character.HipHeight - 1) then continue end
+                                            task.spawn(function()
+                                                bedwars.Client:Get(bedwars.PickupRemote):CallServerAsync({
+                                                    itemDrop = v
+                                                }):andThen(function(suc)
+                                                    if suc and bedwars.SoundList then
+                                                        bedwars.SoundManager:playSound(bedwars.SoundList.PICKUP_ITEM_DROP)
+                                                        local sound = bedwars.ItemTable[v.Name].pickUpOverlaySound
+                                                        if sound then
+                                                            bedwars.SoundManager:playSound(sound, {
+                                                                position = v.Position,
+                                                                volumeMultiplier = 0.9
+                                                            })
                                                         end
-                                                    end)
+                                                    end
                                                 end)
-                                            end
+                                            end)
                                         end
                                     end
                                 end
@@ -1380,6 +1452,10 @@ run(function()
                         end
                     end,
                     Tooltip = 'Picks up items faster'
+                })
+                PickupRangeLower = PickupRange:CreateToggle({
+                    Name = 'Feet Check',
+                    Default = true
                 })
             end)
 
@@ -1391,19 +1467,14 @@ run(function()
                 local AutoTool = {Enabled = false}
                 local oldHitBlock
 
-                local function switchHotbarItem(block)
-                    if block and not block:GetAttribute('NoBreak') and not block:GetAttribute('Team'..(lplr:GetAttribute('Team') or 0)..'NoBreak') then 
+                local function switchBlock(block)
+                    if block and not block:GetAttribute('NoBreak') and not block:GetAttribute('Team'..(lplr:GetAttribute('Team') or 0)..'NoBreak') then
                         local tool, slot = store.tools[bedwars.ItemTable[block.Name].block.breakType], nil
-                        if tool then 
+                        if tool then
                             for i, v in store.inventory.hotbar do
                                 if v.item and v.item.itemType == tool.itemType then slot = i - 1 break end
                             end
-                            if slot and store.inventory.hotbarSlot ~= slot then 
-                                bedwars.Store:dispatch({
-                                    type = 'InventorySelectHotbarSlot',
-                                    slot = slot
-                                })
-                                inventoryEvent.Event:Wait()
+                            if hotbarSwitch(slot) then
                                 if inputService:IsMouseButtonPressed(0) then clickEvent:Fire() end
                                 return true
                             end
@@ -1414,11 +1485,11 @@ run(function()
                 AutoTool = vapelite:CreateModule({
                     Name = 'AutoTool',
                     Function = function(callback)
-                        if callback then 
+                        if callback then
                             oldHitBlock = bedwars.BlockBreaker.hitBlock
                             bedwars.BlockBreaker.hitBlock = function(self, maid, raycastparams, ...)
                                 local block = self.clientManager:getBlockSelector():getMouseInfo(1, {ray = raycastparams})
-                                if switchHotbarItem(block and block.target and block.blockInstance or nil) then return end
+                                if switchBlock(block and block.target and block.target.blockInstance or nil) then return end
                                 return oldHitBlock(self, maid, raycastparams, ...)
                             end
                         else
@@ -1434,12 +1505,13 @@ run(function()
                 local ChestSteal = {Enabled = false}
                 local ChestStealLootDelay = {Value = 100}
                 local ChestStealDelay = {}
-                
+
                 local function lootChest(chest)
                     chest = chest and chest.Value or nil
                     local chestitems = chest and chest:GetChildren() or {}
+
                     if #chestitems > 1 then
-                        for i, v in chestitems do
+                        for _, v in chestitems do
                             if v:IsA('Accessory') then
                                 if (ChestStealDelay[v] or 0) > tick() then continue end
                                 ChestStealDelay[v] = tick() + 0.5
@@ -1453,12 +1525,12 @@ run(function()
                         end
                     end
                 end
-                
+
                 ChestSteal = vapelite:CreateModule({
                     Name = 'ChestSteal',
                     Function = function(callback)
                         if callback then
-                            repeat 
+                            repeat
                                 local open = bedwars.AppController:isAppOpen('ChestApp')
                                 if open then
                                     lootChest(lplr.Character:FindFirstChild('ObservedChestFolder'))
@@ -1481,7 +1553,7 @@ run(function()
         run(function()
             local Sprint = {Enabled = false}
             local oldSprintFunction
-            
+
             Sprint = vapelite:CreateModule({
                 Name = 'Sprint',
                 Function = function(callback)
@@ -1492,7 +1564,7 @@ run(function()
                             bedwars.SprintController:startSprinting()
                             return originalCall
                         end
-                        if entitylib then 
+                        if entitylib then
                             table.insert(Sprint.Connections, entitylib.Events.LocalAdded:Connect(function() task.delay(0.1, function() bedwars.SprintController:stopSprinting() end) end))
                         end
                         bedwars.SprintController:stopSprinting()
@@ -1541,19 +1613,15 @@ run(function()
                 VapeLiteLogo.Position = guiService:GetGuiInset() + Vector2.new(gameCamera.ViewportSize.X - 160, 16 - (textguiwatermark.Enabled and 0 or 64))
                 VapeLiteLogoShadow.Position = VapeLiteLogo.Position + Vector2.new(1, 1)
 
-                for i, v in VapeLabels do 
-                    pcall(function() v.Visible = false v:Remove() end)
-                end
-                for i, v in VapeShadowLabels do 
-                    pcall(function() v.Visible = false v:Remove() end)
-                end
+                for _, v in VapeLabels do pcall(function() v.Visible = false v:Remove() end) end
+                for _, v in VapeShadowLabels do pcall(function() v.Visible = false v:Remove() end) end
 
                 if textgui.Enabled then
                     local modulelist = {}
-                    for i, v in vapelite.Modules do 
+                    for i, v in vapelite.Modules do
                         if i ~= 'TextGUI' and v.Enabled then table.insert(modulelist, {Text = i, Size = getTextSize(i)}) end
                     end
-                    
+
                     if textguisort.Value == 1 then
                         table.sort(modulelist, function(a, b) return a.Size.X > b.Size.X end)
                     else
@@ -1562,7 +1630,7 @@ run(function()
 
                     local start = (VapeLiteLogo.Position + VapeLiteLogo.Size)
                     local newY = 0
-                    for i, v in modulelist do 
+                    for _, v in modulelist do
                         local draw = Drawing.new('Text')
                         draw.Position = Vector2.new(start.X - v.Size.X, start.Y + newY)
                         draw.Color = Color3.fromRGB(67, 117, 255)
@@ -1571,7 +1639,7 @@ run(function()
                         draw.Font = 0
                         draw.ZIndex = 2
                         draw.Visible = true
-                        if textguishadow.Enabled then 
+                        if textguishadow.Enabled then
                             local drawshadow = Drawing.new('Text')
                             drawshadow.Position = draw.Position + Vector2.new(1, 1)
                             drawshadow.Color = Color3.fromRGB(22, 37, 81)
@@ -1591,7 +1659,7 @@ run(function()
             textgui = vapelite:CreateModule({
                 Name = 'TextGUI',
                 Function = function(callback)
-                    if callback then 
+                    if callback then
                         table.insert(textgui.Connections, gameCamera:GetPropertyChangedSignal('ViewportSize'):Connect(function()
                             vapelite:UpdateTextGUI()
                         end))
@@ -1605,7 +1673,7 @@ run(function()
                 Min = 1,
                 Max = 2,
                 Function = function() vapelite:UpdateTextGUI() end
-            }) 
+            })
             textguisize = textgui:CreateSlider({
                 Name = 'Text Size',
                 Min = 1,
@@ -1614,15 +1682,15 @@ run(function()
                 Function = function() vapelite:UpdateTextGUI() end
             })
             textguishadow = textgui:CreateToggle({
-                Name = 'Shadow', 
-                Function = function() 
+                Name = 'Shadow',
+                Function = function()
                     vapelite:UpdateTextGUI()
                 end,
                 Default = true
             })
             textguiwatermark = textgui:CreateToggle({
-                Name = 'Watermark', 
-                Function = function() 
+                Name = 'Watermark',
+                Function = function()
                     vapelite:UpdateTextGUI()
                 end,
                 Default = true
