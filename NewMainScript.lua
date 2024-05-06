@@ -413,6 +413,13 @@ run(function()
                                 end))
                             end
                             entitylib.Events.EntityAdded:Fire(entity)
+                            if not plr.Team then
+                                task.spawn(function()
+                                    repeat task.wait() until plr.Team
+                                    entitylib.Events.EntityRemoved:Fire(entity)
+                                    entitylib.Events.EntityAdded:Fire(entity)
+                                end)
+                            end
                         end
                     end
                 end
@@ -773,6 +780,7 @@ run(function()
                 local ESPName = {Enabled = true}
                 local ESPDisplay = {Enabled = true}
                 local ESPBackground = {Enabled = false}
+                local ESPFilled = {Enabled = false}
                 local ESPTeammates = {Enabled = true}
                 local ESPModes = {'2D', '3D', 'Skeleton'}
                 local ESPFolder = {}
@@ -807,7 +815,7 @@ run(function()
                         EntityESP.Border2.Transparency = ESPBoundingBox.Enabled and 0.35 or 0
                         EntityESP.Border2.ZIndex = 1
                         EntityESP.Border2.Thickness = 1
-                        EntityESP.Border2.Filled = false
+                        EntityESP.Border2.Filled = ESPFilled.Enabled
                         EntityESP.Border2.Color = Color3.new()
                         if ESPHealthBar.Enabled then
                             EntityESP.HealthLine = Drawing.new('Line')
@@ -993,6 +1001,7 @@ run(function()
                             if not rootVis then continue end
                             local rigcheck = ent.Humanoid.RigType == Enum.HumanoidRigType.R6
                             pcall(function() -- kill me
+                                local offset = rigcheck and CFrame.new(0, -0.8, 0) or CFrame.new()
                                 local head = ESPWorldToViewport((ent.Head.CFrame).p)
                                 local headfront = ESPWorldToViewport((ent.Head.CFrame * CFrame.new(0, 0, -0.5)).p)
                                 local toplefttorso = ESPWorldToViewport((ent.Character[(rigcheck and 'Torso' or 'UpperTorso')].CFrame * CFrame.new(-1.5, 0.8, 0)).p)
@@ -1001,10 +1010,10 @@ run(function()
                                 local bottomtorso = ESPWorldToViewport((ent.Character[(rigcheck and 'Torso' or 'UpperTorso')].CFrame * CFrame.new(0, -0.8, 0)).p)
                                 local bottomlefttorso = ESPWorldToViewport((ent.Character[(rigcheck and 'Torso' or 'UpperTorso')].CFrame * CFrame.new(-0.5, -0.8, 0)).p)
                                 local bottomrighttorso = ESPWorldToViewport((ent.Character[(rigcheck and 'Torso' or 'UpperTorso')].CFrame * CFrame.new(0.5, -0.8, 0)).p)
-                                local leftarm = ESPWorldToViewport((ent.Character[(rigcheck and 'Left Arm' or 'LeftHand')].CFrame * CFrame.new(0, -0.8, 0)).p)
-                                local rightarm = ESPWorldToViewport((ent.Character[(rigcheck and 'Right Arm' or 'RightHand')].CFrame * CFrame.new(0, -0.8, 0)).p)
-                                local leftleg = ESPWorldToViewport((ent.Character[(rigcheck and 'Left Leg' or 'LeftFoot')].CFrame * CFrame.new(0, -0.8, 0)).p)
-                                local rightleg = ESPWorldToViewport((ent.Character[(rigcheck and 'Right Leg' or 'RightFoot')].CFrame * CFrame.new(0, -0.8, 0)).p)
+                                local leftarm = ESPWorldToViewport((ent.Character[(rigcheck and 'Left Arm' or 'LeftHand')].CFrame * offset).p)
+                                local rightarm = ESPWorldToViewport((ent.Character[(rigcheck and 'Right Arm' or 'RightHand')].CFrame * offset).p)
+                                local leftleg = ESPWorldToViewport((ent.Character[(rigcheck and 'Left Leg' or 'LeftFoot')].CFrame * offset).p)
+                                local rightleg = ESPWorldToViewport((ent.Character[(rigcheck and 'Right Leg' or 'RightFoot')].CFrame * offset).p)
                                 EntityESP.Head.From = toptorso
                                 EntityESP.Head.To = head
                                 EntityESP.HeadFacing.From = head
@@ -1087,6 +1096,10 @@ run(function()
                 })
                 ESPBackground = ESP:CreateToggle({
                     Name = 'Show Background',
+                    Function = function() if ESP.Enabled then ESP:Toggle() ESP:Toggle() end end
+                })
+                ESPFilled = ESP:CreateToggle({
+                    Name = 'Filled',
                     Function = function() if ESP.Enabled then ESP:Toggle() ESP:Toggle() end end
                 })
                 ESPTeammates = ESP:CreateToggle({
@@ -1580,6 +1593,7 @@ run(function()
         run(function()
             local textgui = {Enabled = false}
             local textguisort = {Value = 1}
+            local textguifont = {Value = 0}
             local textguisize = {Value = 20}
             local textguishadow = {Enabled = true}
             local textguiwatermark = {Enabled = true}
@@ -1610,7 +1624,7 @@ run(function()
             function vapelite:UpdateTextGUI()
                 VapeLiteLogo.Visible = textgui.Enabled and textguiwatermark.Enabled
                 VapeLiteLogoShadow.Visible = textgui.Enabled and textguiwatermark.Enabled and textguishadow.Enabled
-                VapeLiteLogo.Position = guiService:GetGuiInset() + Vector2.new(gameCamera.ViewportSize.X - 160, 16 - (textguiwatermark.Enabled and 0 or 64))
+                VapeLiteLogo.Position = Vector2.new(gameCamera.ViewportSize.X - 160, 52 - (textguiwatermark.Enabled and 0 or 64))
                 VapeLiteLogoShadow.Position = VapeLiteLogo.Position + Vector2.new(1, 1)
 
                 for _, v in VapeLabels do pcall(function() v.Visible = false v:Remove() end) end
@@ -1636,7 +1650,7 @@ run(function()
                         draw.Color = Color3.fromRGB(67, 117, 255)
                         draw.Text = v.Text
                         draw.Size = textguisize.Value
-                        draw.Font = 0
+                        draw.Font = math.clamp(textguifont.Value - 1, 0, 3)
                         draw.ZIndex = 2
                         draw.Visible = true
                         if textguishadow.Enabled then
@@ -1644,8 +1658,8 @@ run(function()
                             drawshadow.Position = draw.Position + Vector2.new(1, 1)
                             drawshadow.Color = Color3.fromRGB(22, 37, 81)
                             drawshadow.Text = v.Text
-                            drawshadow.Size = textguisize.Value
-                            drawshadow.Font = 0
+                            drawshadow.Size = draw.Size
+                            drawshadow.Font = draw.Font
                             drawshadow.ZIndex = 1
                             drawshadow.Visible = true
                             table.insert(VapeShadowLabels, drawshadow)
@@ -1672,6 +1686,12 @@ run(function()
                 Name = 'Sort',
                 Min = 1,
                 Max = 2,
+                Function = function() vapelite:UpdateTextGUI() end
+            })
+            textguifont = textgui:CreateSlider({
+                Name = 'Font',
+                Min = 1,
+                Max = 4,
                 Function = function() vapelite:UpdateTextGUI() end
             })
             textguisize = textgui:CreateSlider({
