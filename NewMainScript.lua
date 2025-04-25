@@ -504,7 +504,7 @@ run(function()
 					Function = function(callback)
 						if callback then
 							AimAssist:Clean(runService.RenderStepped:Connect(function(delta)
-								if store.hand.Type == 'sword' and (Active.Enabled or (os.clock() - bedwars.SwordController.lastSwing) < 0.2) then
+								if store.hand.Type == 'sword' and (Active.Enabled or (tick() - bedwars.SwordController.lastSwing) < 0.2) then
 									local plr = getEntitiesNear(Range.Value)
 									if plr and not bedwars.AppController:isLayerOpen(bedwars.UILayers.MAIN) then
 										local pos, vis = gameCamera:WorldToViewportPoint(plr.RootPart.Position)
@@ -569,16 +569,11 @@ run(function()
 										end
 									end
 								elseif store.hand.Type == 'sword' then
-									if bedwars.SwordController:getChargeState() ~= 'IDLE' then
-										bedwars.SwordController:stopCharging(store.hand.tool.Name)
-										bedwars.SwordController.chargingMaid:DoCleaning()
-									end
-
-									bedwars.SwordController:swingSwordAtMouse(0.39)
+									bedwars.SwordController:swingSwordAtMouse()
 								end
 							end
 
-							task.wait(1 / (store.hand.Type == 'sword' and 9 or CPS.Value))
+							task.wait(1 / (store.hand.Type == 'sword' and 7 or CPS.Value))
 						until not AutoClicker.Enabled
 					end)
 				end
@@ -646,7 +641,8 @@ run(function()
 										if Moving.Enabled and entitylib.character.RootPart.Velocity.Magnitude < 3 then return end
 										bedwars.Client:Get(bedwars.AttackRemote):SendToServer({
 											weapon = store.hand.tool,
-											chargeRatio = math.clamp(chargeRatio / bedwars.SwordController:getMaxChargeSeconds(), 0, 1),
+											chargedAttack = {chargeRatio = 0},
+											lastSwingServerTimeDelta = 0.5,
 											entityInstance = plr.Character,
 											validate = {
 												raycast = {
@@ -726,8 +722,8 @@ run(function()
 				vapelite:CreateModule({
 					Name = 'HitFix',
 					Function = function(callback)
-						debug.setconstant(bedwars.SwordController.swingSwordAtMouse, 23, callback and 'raycast' or 'Raycast')
-						debug.setupvalue(bedwars.SwordController.swingSwordAtMouse, 4, callback and bedwars.QueryUtil or workspace)
+						debug.setconstant(swingHook, 23, callback and 'raycast' or 'Raycast')
+						debug.setupvalue(swingHook, 4, callback and bedwars.QueryUtil or workspace)
 					end,
 					Tooltip = 'Changes the raycast function to the correct one'
 				})
@@ -747,7 +743,7 @@ run(function()
 					Name = 'Killaura',
 					Function = function(callback)
 						if callback then
-							debug.setconstant(bedwars.SwordController.attackEntity, 54, 'baseDamage')
+							debug.setconstant(bedwars.SwordController.attackEntity, 58, 'damage')
 							Killaura:Clean(swingEvent.Event:Connect(function(chargeRatio)
 								local plr = getEntitiesNear(AttackRange.Value)
 								if plr and store.hand.Type == 'sword' then
@@ -761,7 +757,8 @@ run(function()
 									if Moving.Enabled and entitylib.character.RootPart.Velocity.Magnitude < 3 then return end
 									bedwars.Client:Get(bedwars.AttackRemote):SendToServer({
 										weapon = store.hand.tool,
-										chargeRatio = math.clamp(chargeRatio / bedwars.SwordController:getMaxChargeSeconds(), 0.65, 1),
+										chargedAttack = {chargeRatio = 0},
+										lastSwingServerTimeDelta = 0.5,
 										entityInstance = plr.Character,
 										validate = {
 											raycast = {
