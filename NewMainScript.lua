@@ -279,8 +279,12 @@ run(function()
 				})
 			}
 			local swingEvent = Instance.new('BindableEvent')
+			local swingPreEvent = Instance.new('BindableEvent')
 			local inventoryEvent = Instance.new('BindableEvent')
 			local clickEvent = Instance.new('BindableEvent')
+			local chargeSwingTime = os.clock()
+			local AutoCharge
+			local AutoChargeTime
 			local swingHook
 
 			local function getEntitiesNear(range)
@@ -460,6 +464,7 @@ run(function()
 
 				swingHook = bedwars.SwordController.swingSwordAtMouse
 				bedwars.SwordController.swingSwordAtMouse = function(...)
+					swingPreEvent:Fire(select(2, ...))
 					swingEvent:Fire(select(2, ...))
 					return swingHook(...)
 				end
@@ -480,6 +485,7 @@ run(function()
 					table.clear(entitylib)
 					bedwars.SwordController.swingSwordAtMouse = swingHook
 					swingEvent:Destroy()
+					swingPreEvent:Destroy()
 					inventoryEvent:Destroy()
 					clickEvent:Destroy()
 					--ts after the store uses lowercase Disconnect so I have to seperate it :skull:
@@ -639,15 +645,20 @@ run(function()
 										local selfrootpos = entitylib.character.RootPart.Position
 										local delta = (plr.RootPart.Position - selfrootpos)
 										if Moving.Enabled and entitylib.character.RootPart.Velocity.Magnitude < 3 then return end
+
+										local swingDelta = workspace:GetServerTimeNow() - bedwars.SwordController.lastSwingServerTime
+										if delta.Magnitude < 14.4 and AutoCharge.Enabled and (os.clock() - chargeSwingTime) < AutoChargeTime.Value / 100 then return end
+										chargeSwingTime = os.clock()
+
 										bedwars.Client:Get(bedwars.AttackRemote):SendToServer({
 											weapon = store.hand.tool,
 											chargedAttack = {chargeRatio = 0},
-											lastSwingServerTimeDelta = 0.5,
+											lastSwingServerTimeDelta = swingDelta,
 											entityInstance = plr.Character,
 											validate = {
 												raycast = {
 													cameraPosition = {value = gameCamera.CFrame.Position},
-													cursorDirection = {value = Ray.new(gameCamera.CFrame.p, plr.RootPart.Position).Unit.Direction}
+													cursorDirection = {value = CFrame.lookAt(gameCamera.CFrame.Position, plr.RootPart.Position).LookVector}
 												},
 												targetPosition = {value = plr.RootPart.Position},
 												selfPosition = {value = selfrootpos + CFrame.lookAt(selfrootpos, plr.RootPart.Position).LookVector * math.max(delta.Magnitude - 14.399, 0)}
@@ -734,6 +745,42 @@ run(function()
 			]]
 
 			run(function()
+				local attackTime = os.clock()
+				local old
+
+				AutoCharge = vapelite:CreateModule({
+					Name = 'AutoCharge',
+					Function = function(callback)
+						if callback then
+							AutoCharge:Clean(swingPreEvent.Event:Connect(function()
+								bedwars.SwordController.lastSwingServerTime = workspace:GetServerTimeNow() - 0.5
+							end))
+
+							old = bedwars.SwordController.sendServerRequest
+							bedwars.SwordController.sendServerRequest = function(...)
+								if (os.clock() - chargeSwingTime) < AutoChargeTime.Value / 100 then return end
+								chargeSwingTime = os.clock()
+
+								return old(...)
+							end
+						else
+							if old then
+								bedwars.SwordController.sendServerRequest = old
+								old = nil
+							end
+						end
+					end,
+					Tooltip = 'Always get first hit at max charge time.'
+				})
+				AutoChargeTime = AutoCharge:CreateSlider({
+					Name = 'Charge Time',
+					Min = 0,
+					Max = 50,
+					Default = 40
+				})
+			end)
+
+			run(function()
 				local Killaura
 				local AttackRange
 				local Angle
@@ -755,15 +802,20 @@ run(function()
 									local angle = math.acos(localfacing:Dot((delta * Vector3.new(1, 0, 1)).Unit))
 									if angle > (math.rad(Angle.Value) / 2) then return end
 									if Moving.Enabled and entitylib.character.RootPart.Velocity.Magnitude < 3 then return end
+
+									local swingDelta = workspace:GetServerTimeNow() - bedwars.SwordController.lastSwingServerTime
+									if delta.Magnitude < 14.4 and AutoCharge.Enabled and (os.clock() - chargeSwingTime) < AutoChargeTime.Value / 100 then return end
+									chargeSwingTime = os.clock()
+
 									bedwars.Client:Get(bedwars.AttackRemote):SendToServer({
 										weapon = store.hand.tool,
 										chargedAttack = {chargeRatio = 0},
-										lastSwingServerTimeDelta = 0.5,
+										lastSwingServerTimeDelta = swingDelta,
 										entityInstance = plr.Character,
 										validate = {
 											raycast = {
 												cameraPosition = {value = gameCamera.CFrame.Position},
-												cursorDirection = {value = Ray.new(gameCamera.CFrame.p, plr.RootPart.Position).Unit.Direction}
+												cursorDirection = {value = CFrame.lookAt(gameCamera.CFrame.Position, plr.RootPart.Position).LookVector}
 											},
 											targetPosition = {value = plr.RootPart.Position},
 											selfPosition = {value = selfrootpos + CFrame.lookAt(selfrootpos, plr.RootPart.Position).LookVector * math.max(delta.Magnitude - 14.399, 0)}
