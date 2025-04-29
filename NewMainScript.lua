@@ -282,10 +282,15 @@ run(function()
 			local swingPreEvent = Instance.new('BindableEvent')
 			local inventoryEvent = Instance.new('BindableEvent')
 			local clickEvent = Instance.new('BindableEvent')
+
+			local canSwing
 			local chargeSwingTime = os.clock()
+			local swingHook
+
 			local AutoCharge
 			local AutoChargeTime
-			local swingHook
+			local Killaura
+			local Reach
 
 			local function getEntitiesNear(range)
 				if entitylib.isAlive then
@@ -494,6 +499,10 @@ run(function()
 				end})
 			end)
 
+			local function refreshMissCooldown()
+				debug.setconstant(bedwars.SwordController.attackEntity, 58, (AutoCharge.Enabled or Killaura.Enabled or Reach.Enabled) and 'damage' or 'multiHitCheckDurationSec')
+			end
+
 			--[[
 				Combat
 			]]
@@ -617,7 +626,6 @@ run(function()
 			end)
 
 			run(function()
-				local Reach
 				local Value
 				local Moving
 				local mouse = lplr:GetMouse()
@@ -628,6 +636,7 @@ run(function()
 					Name = 'Reach',
 					Function = function(callback)
 						if callback then
+							refreshMissCooldown()
 							Reach:Clean(swingEvent.Event:Connect(function(chargeRatio)
 								rayparams.FilterDescendantsInstances = {lplr.Character}
 								local ray = bedwars.QueryUtil:raycast(mouse.UnitRay.Origin, mouse.UnitRay.Direction * 200, rayparams)
@@ -648,6 +657,7 @@ run(function()
 
 										local swingDelta = workspace:GetServerTimeNow() - bedwars.SwordController.lastSwingServerTime
 										if delta.Magnitude < 14.4 and AutoCharge.Enabled and (os.clock() - chargeSwingTime) < AutoChargeTime.Value / 100 then return end
+										canSwing = true
 										chargeSwingTime = os.clock()
 
 										bedwars.Client:Get(bedwars.AttackRemote):SendToServer({
@@ -674,8 +684,8 @@ run(function()
 				Value = Reach:CreateSlider({
 					Name = 'Range',
 					Min = 0,
-					Max = 18,
-					Default = 18
+					Max = 22,
+					Default = 22
 				})
 				Moving = Reach:CreateToggle({Name = 'Only while moving'})
 			end)
@@ -745,32 +755,51 @@ run(function()
 			]]
 
 			run(function()
-				local attackTime = os.clock()
 				local old
+				local oldSwing
 
 				AutoCharge = vapelite:CreateModule({
 					Name = 'AutoCharge',
 					Function = function(callback)
+						refreshMissCooldown()
 						if callback then
 							AutoCharge:Clean(swingPreEvent.Event:Connect(function()
 								bedwars.SwordController.lastSwingServerTime = workspace:GetServerTimeNow() - 0.5
 							end))
 
 							old = bedwars.SwordController.sendServerRequest
-							bedwars.SwordController.sendServerRequest = function(...)
+							bedwars.SwordController.sendServerRequest = function(self, ...)
 								if (os.clock() - chargeSwingTime) < AutoChargeTime.Value / 100 then return end
 								chargeSwingTime = os.clock()
+								canSwing = true
 
-								return old(...)
+								local item = self:getHandItem()
+								if item and item.tool then
+									self:playSwordEffect(bedwars.ItemMeta[item.tool.Name], false)
+								end
+
+								return old(self, ...)
+							end
+
+							oldSwing = bedwars.SwordController.playSwordEffect
+							bedwars.SwordController.playSwordEffect = function(...)
+								if not canSwing then return end
+								canSwing = false
+								return oldSwing(...)
 							end
 						else
 							if old then
 								bedwars.SwordController.sendServerRequest = old
 								old = nil
 							end
+
+							if oldSwing then
+								bedwars.SwordController.playSwordEffect = oldSwing
+								oldSwing = nil
+							end
 						end
 					end,
-					Tooltip = 'Always get first hit at max charge time.'
+					Tooltip = 'Allows you to get charged hits while spam clicking.'
 				})
 				AutoChargeTime = AutoCharge:CreateSlider({
 					Name = 'Charge Time',
@@ -781,16 +810,20 @@ run(function()
 			end)
 
 			run(function()
-				local Killaura
 				local AttackRange
 				local Angle
 				local Moving
+				local AttackRemote
+				task.spawn(function()
+					AttackRemote = bedwars.Client:Get(bedwars.AttackRemote)
+				end)
 
 				Killaura = vapelite:CreateModule({
 					Name = 'Killaura',
 					Function = function(callback)
+						refreshMissCooldown()
 						if callback then
-							debug.setconstant(bedwars.SwordController.attackEntity, 58, 'damage')
+							local animTime = os.clock()
 							Killaura:Clean(swingEvent.Event:Connect(function(chargeRatio)
 								local plr = getEntitiesNear(AttackRange.Value)
 								if plr and store.hand.Type == 'sword' then
@@ -804,10 +837,19 @@ run(function()
 									if Moving.Enabled and entitylib.character.RootPart.Velocity.Magnitude < 3 then return end
 
 									local swingDelta = workspace:GetServerTimeNow() - bedwars.SwordController.lastSwingServerTime
-									if delta.Magnitude < 14.4 and AutoCharge.Enabled and (os.clock() - chargeSwingTime) < AutoChargeTime.Value / 100 then return end
+									local targetTime = AutoChargeTime.Value / 100
+									if delta.Magnitude < 14.4 and AutoCharge.Enabled and (os.clock() - chargeSwingTime) < targetTime then return end
+									canSwing = true
 									chargeSwingTime = os.clock()
 
-									bedwars.Client:Get(bedwars.AttackRemote):SendToServer({
+									if AutoCharge.Enabled then
+										canSwing = (os.clock() - chargeSwingTime) < targetTime or (os.clock() - animTime) < targetTime
+										if canSwing then
+											animTime = os.clock()
+										end
+									end
+
+									AttackRemote:SendToServer({
 										weapon = store.hand.tool,
 										chargedAttack = {chargeRatio = 0},
 										lastSwingServerTimeDelta = swingDelta,
@@ -823,8 +865,6 @@ run(function()
 									})
 								end
 							end))
-						else
-							debug.setconstant(bedwars.SwordController.attackEntity, 54, 'multiHitCheckDurationSec')
 						end
 					end,
 					Tooltip = 'Attack players around you without aiming at them.'
